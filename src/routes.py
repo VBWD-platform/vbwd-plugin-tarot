@@ -111,11 +111,14 @@ def get_user_tarif_plan_limits(user_id: str) -> tuple:
         # The provider returns the active (ACTIVE/TRIALING) plan's feature value,
         # or the default when there's no active plan / no subscription plugin.
         entitlement = resolve_entitlement_provider()
+        # The entitlement port keys on a UUID user id; this helper may be called
+        # with the str form (e.g. from a JWT identity), so normalise first.
+        uid = user_id if isinstance(user_id, UUID) else UUID(user_id)
         daily_limit = entitlement.get_feature_value(
-            user_id, "daily_taro_limit", DEFAULT_DAILY_LIMIT
+            uid, "daily_taro_limit", DEFAULT_DAILY_LIMIT
         )
         max_follow_ups = entitlement.get_feature_value(
-            user_id, "max_taro_follow_ups", DEFAULT_MAX_FOLLOW_UPS
+            uid, "max_taro_follow_ups", DEFAULT_MAX_FOLLOW_UPS
         )
 
         return int(daily_limit), int(max_follow_ups)

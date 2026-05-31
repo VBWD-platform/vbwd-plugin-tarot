@@ -27,7 +27,7 @@ class TaroCardDraw(BaseModel):
     session_id = db.Column(db.UUID, nullable=False, index=True)  # FK to taro_session
     arcana_id = db.Column(
         UUID(as_uuid=True),
-        db.ForeignKey("arcana.id"),
+        db.ForeignKey("taro_arcana.id"),
         nullable=False,
         index=True,
     )

@@ -19,7 +19,7 @@ class Arcana(BaseModel):
     - Image URL: For display in UI
     """
 
-    __tablename__ = "arcana"
+    __tablename__ = "taro_arcana"
 
     # Card identity
     number = db.Column(db.Integer, nullable=True, index=True)  # 0-21 for Major Arcana

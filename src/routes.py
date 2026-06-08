@@ -123,8 +123,8 @@ def get_user_tarif_plan_limits(user_id: str) -> tuple:
 
         return int(daily_limit), int(max_follow_ups)
 
-    except Exception as e:
-        print(f"Error fetching tarif plan limits: {e}")
+    except Exception:
+        logger.exception("Error fetching tarif plan limits")
         return DEFAULT_DAILY_LIMIT, DEFAULT_MAX_FOLLOW_UPS
 
 

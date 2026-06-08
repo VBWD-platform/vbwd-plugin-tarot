@@ -1,4 +1,5 @@
 """ArcanaInterpretationService - LLM integration for card interpretations."""
+import logging
 from typing import Tuple, List
 from plugins.taro.src.repositories.taro_card_draw_repository import (
     TaroCardDrawRepository,
@@ -6,6 +7,8 @@ from plugins.taro.src.repositories.taro_card_draw_repository import (
 from plugins.taro.src.models.arcana import Arcana
 from plugins.taro.src.models.taro_card_draw import TaroCardDraw
 from plugins.taro.src.enums import CardPosition, CardOrientation
+
+logger = logging.getLogger(__name__)
 
 
 class ArcanaInterpretationService:
@@ -71,9 +74,9 @@ class ArcanaInterpretationService:
 
             return interpretation, tokens_used
 
-        except Exception as e:
+        except Exception:
             # Fallback if LLM fails
-            print(f"LLM error: {e}")
+            logger.exception("LLM error generating card interpretation")
             fallback = self._build_fallback_interpretation(arcana, orientation)
             return fallback, 5
 
@@ -164,8 +167,8 @@ Keep it concise and mystical."""
             tokens_used = len(interpretation.split()) // 4
             return interpretation, tokens_used
 
-        except Exception as e:
-            print(f"LLM error for spread: {e}")
+        except Exception:
+            logger.exception("LLM error generating spread interpretation")
             fallback = "Your reading reveals a journey of growth and transformation."
             return fallback, 10
 
@@ -230,8 +233,8 @@ Keep it evocative and meaningful."""
             tokens_used = len(interpretation.split()) // 4
             return interpretation, tokens_used
 
-        except Exception as e:
-            print(f"LLM error for follow-up: {e}")
+        except Exception:
+            logger.exception("LLM error generating follow-up interpretation")
             fallback = f"Regarding your question about {question[:20]}..., deeper insight reveals..."
             return fallback, 5
 

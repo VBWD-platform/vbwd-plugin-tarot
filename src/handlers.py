@@ -1,4 +1,5 @@
 """Event handlers for Taro plugin - orchestrate business logic."""
+import logging
 from typing import Optional
 from vbwd.extensions import db
 from plugins.taro.src.events import (
@@ -15,6 +16,8 @@ from plugins.taro.src.services.arcana_interpretation_service import (
 from plugins.taro.src.repositories.taro_card_draw_repository import (
     TaroCardDrawRepository,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class TaroSessionCreatedHandler:
@@ -91,7 +94,7 @@ class TaroSessionCreatedHandler:
 
             if not token_success:
                 # Log but don't fail - session already created
-                print(f"Warning: Failed to deduct tokens for user {event.user_id}")
+                logger.warning("Failed to deduct tokens for user %s", event.user_id)
 
             # Emit interpretation generated event
             return TaroInterpretationGeneratedEvent(
@@ -101,8 +104,8 @@ class TaroSessionCreatedHandler:
                 created_at=event.timestamp,
             )
 
-        except Exception as e:
-            print(f"Error handling session created event: {e}")
+        except Exception:
+            logger.exception("Error handling session created event")
             return None
 
 
@@ -146,7 +149,7 @@ class TaroFollowUpHandler:
             # Validate session exists
             session = self.session_service.get_session(event.session_id)
             if not session:
-                print(f"Session {event.session_id} not found")
+                logger.warning("Session %s not found", event.session_id)
                 return None
 
             # Get original cards
@@ -202,15 +205,16 @@ class TaroFollowUpHandler:
             )
 
             if not token_success:
-                print(
-                    f"Warning: Failed to deduct follow-up tokens for user {event.user_id}"
+                logger.warning(
+                    "Failed to deduct follow-up tokens for user %s", event.user_id
                 )
 
             # Increment follow-up count
             updated_session = self.session_service.add_follow_up(event.session_id)
             if not updated_session:
-                print(
-                    f"Failed to increment follow-up count for session {event.session_id}"
+                logger.warning(
+                    "Failed to increment follow-up count for session %s",
+                    event.session_id,
                 )
 
             # Return follow-up generated event
@@ -226,6 +230,6 @@ class TaroFollowUpHandler:
                 created_at=event.requested_at,
             )
 
-        except Exception as e:
-            print(f"Error handling follow-up event: {e}")
+        except Exception:
+            logger.exception("Error handling follow-up event")
             return None

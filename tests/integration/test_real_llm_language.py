@@ -374,6 +374,12 @@ class TestLLMConfigurationLoading:
         except FileNotFoundError:
             pytest.skip("plugins/config.json not found — skipping config loading test")
 
+        if not config:
+            pytest.skip(
+                "no taro section in the aggregate plugins/config.json "
+                "(taro not installed/merged in this environment)"
+            )
+
         # Validate required fields exist
         assert "llm_api_endpoint" in config
         assert "llm_api_key" in config
@@ -386,6 +392,12 @@ class TestLLMConfigurationLoading:
             config = load_taro_config()
         except FileNotFoundError:
             pytest.skip("plugins/config.json not found — skipping config loading test")
+
+        if not config:
+            pytest.skip(
+                "no taro section in the aggregate plugins/config.json "
+                "(taro not installed/merged in this environment)"
+            )
 
         # Note: The current config may not have {{language}} yet
         # This test documents what we expect after the fix

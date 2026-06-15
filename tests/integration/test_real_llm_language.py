@@ -27,7 +27,15 @@ from plugins.chat.src.llm_adapter import LLMAdapter, LLMError
 
 
 def load_taro_config():
-    """Load Taro configuration from plugins/config.json"""
+    """Load Taro configuration from the aggregate ``plugins/config.json``.
+
+    Drives the real-LLM fixtures (``taro_config`` / ``llm_adapter``): when the
+    aggregate has no credentials (the CI / local default) those fixtures skip,
+    so this loader must read the aggregate — NOT the plugin's own config.json
+    (which ships real credentials and templates). The two config-CONTENT tests
+    instead use ``load_taro_plugin_config()`` below to assert the shipped
+    template keys.
+    """
     config_path = os.path.join(
         os.path.dirname(
             os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -42,6 +50,28 @@ def load_taro_config():
         config = json.load(f)
 
     return config.get("taro", {})
+
+
+def load_taro_plugin_config():
+    """Load taro's OWN ``plugins/taro/config.json`` — the single source of truth
+    that ships the prompt templates (``system_prompt``,
+    ``situation_reading_template``, …).
+
+    The aggregate ``plugins/config.json`` only holds persisted overrides, which
+    a fresh install seeds from ``DEFAULT_CONFIG`` (base keys, no templates), so
+    the config-content tests must assert against this file. It is a flat dict
+    (no ``taro`` wrapper), unlike the aggregate.
+    """
+    config_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        "config.json",
+    )
+
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(f"Config file not found: {config_path}")
+
+    with open(config_path, "r") as f:
+        return json.load(f)
 
 
 @pytest.fixture
@@ -385,17 +415,16 @@ class TestLLMConfigurationLoading:
     """Tests for loading and validating LLM configuration"""
 
     def test_load_taro_config_from_file(self):
-        """Test loading Taro config from plugins/config.json"""
+        """Taro's own config.json ships the LLM + prompt keys."""
         try:
-            config = load_taro_config()
+            config = load_taro_plugin_config()
         except FileNotFoundError:
-            pytest.skip("plugins/config.json not found — skipping config loading test")
+            pytest.skip(
+                "plugins/taro/config.json not found — taro not installed here"
+            )
 
         if not config:
-            pytest.skip(
-                "no taro section in the aggregate plugins/config.json "
-                "(taro not installed/merged in this environment)"
-            )
+            pytest.skip("plugins/taro/config.json is empty in this environment")
 
         # Validate required fields exist
         assert "llm_api_endpoint" in config
@@ -404,20 +433,17 @@ class TestLLMConfigurationLoading:
         assert "system_prompt" in config
 
     def test_taro_config_has_language_templates(self):
-        """Test that config has templates with language support"""
+        """Taro's own config.json ships the prompt templates."""
         try:
-            config = load_taro_config()
+            config = load_taro_plugin_config()
         except FileNotFoundError:
-            pytest.skip("plugins/config.json not found — skipping config loading test")
-
-        if not config:
             pytest.skip(
-                "no taro section in the aggregate plugins/config.json "
-                "(taro not installed/merged in this environment)"
+                "plugins/taro/config.json not found — taro not installed here"
             )
 
-        # Note: The current config may not have {{language}} yet
-        # This test documents what we expect after the fix
+        if not config:
+            pytest.skip("plugins/taro/config.json is empty in this environment")
+
         assert "situation_reading_template" in config
         assert "card_explanation_template" in config
         assert "follow_up_question_template" in config

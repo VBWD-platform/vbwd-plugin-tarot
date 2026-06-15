@@ -419,9 +419,7 @@ class TestLLMConfigurationLoading:
         try:
             config = load_taro_plugin_config()
         except FileNotFoundError:
-            pytest.skip(
-                "plugins/taro/config.json not found — taro not installed here"
-            )
+            pytest.skip("plugins/taro/config.json not found — taro not installed here")
 
         if not config:
             pytest.skip("plugins/taro/config.json is empty in this environment")
@@ -437,9 +435,7 @@ class TestLLMConfigurationLoading:
         try:
             config = load_taro_plugin_config()
         except FileNotFoundError:
-            pytest.skip(
-                "plugins/taro/config.json not found — taro not installed here"
-            )
+            pytest.skip("plugins/taro/config.json not found — taro not installed here")
 
         if not config:
             pytest.skip("plugins/taro/config.json is empty in this environment")

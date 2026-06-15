@@ -88,6 +88,20 @@ def app():
 
     limiter.reset()
 
+    # Build the schema once per process (create_all, checkfirst — never drops, so
+    # it cannot wipe data) and commit baseline reference rows once. Each test
+    # then isolates itself via a rolled-back transaction (no TRUNCATE, no DROP) —
+    # see vbwd/testing/integration_db.py.
+    with app.app_context():
+        from vbwd.extensions import db as _db
+
+        # Model-registration imports are load-bearing (SQLAlchemy table mapping)
+        # so the one-time create_all() builds the taro tables too.
+        import plugins.taro.src.models  # noqa: F401
+        from vbwd.testing.integration_db import ensure_schema_and_baseline
+
+        ensure_schema_and_baseline(_db)
+
     yield app
 
     # Dispose engine to free DB connections (prevents exhaustion in full test run)
@@ -105,15 +119,17 @@ def client(app):
 
 @pytest.fixture
 def db(app):
-    """Provide database for testing.
+    """Isolate each test in a rolled-back transaction (self-cleaning, no wipe).
 
-    Creates all tables in the isolated test database, yields the db handle,
-    then drops everything.  This never touches the main 'vbwd' database.
+    The schema + baseline reference rows are built once in the ``app`` fixture;
+    each test runs inside a transaction that is rolled back at teardown, so
+    nothing it writes persists — it never wipes the shared ``*_test`` database.
+    See vbwd/testing/integration_db.py.
     """
     from vbwd.extensions import db
 
     with app.app_context():
-        db.create_all()
-        yield db
-        db.session.remove()
-        db.drop_all()
+        from vbwd.testing.integration_db import rollback_isolation
+
+        with rollback_isolation(db):
+            yield db

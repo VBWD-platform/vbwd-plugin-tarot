@@ -100,6 +100,23 @@ def prompt_service(taro_config):
     return PromptService.from_dict(prompts_data)
 
 
+@pytest.fixture
+def db():
+    """Hand back the shared SQLAlchemy object WITHOUT re-isolating.
+
+    The integration conftest's autouse ``_isolate_test`` already wraps every test
+    in a rolled-back transaction (swapping ``db.engine`` for a live connection).
+    Pulling the function-scoped ``db`` fixture from the plugin-root conftest would
+    open a SECOND ``rollback_isolation`` on top of that — capturing the already
+    swapped Connection as the "real engine" and failing with
+    ``'Connection' object has no attribute 'connect'``. These tests only need the
+    db handle to build repositories; isolation is the autouse fixture's job.
+    """
+    from vbwd.extensions import db as _db
+
+    return _db
+
+
 @pytest.mark.skipif(
     os.getenv("SKIP_LLM_TESTS") == "1",
     reason="Skipping real LLM tests (set SKIP_LLM_TESTS=1 to skip)",

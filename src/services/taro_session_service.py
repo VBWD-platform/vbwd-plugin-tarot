@@ -126,7 +126,9 @@ class TaroSessionService:
                 "You are an expert Tarot card reader providing mystical insights.",
             )
 
-            llm_client = current_app.container.llm_client(slug=slug)
+            llm_client = current_app.container.llm_client(  # type: ignore[attr-defined]
+                slug=slug
+            )
             return CoreClientChatAdapter(llm_client, system_prompt=system_prompt)
         except Exception as initialization_error:
             logger.warning(

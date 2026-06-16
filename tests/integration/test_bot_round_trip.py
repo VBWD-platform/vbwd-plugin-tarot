@@ -14,9 +14,7 @@ import pytest
 from vbwd.models.enums import TokenTransactionType, UserRole
 
 TARO_BOT_CONFIG = {
-    "llm_api_endpoint": "",
-    "llm_api_key": "",
-    "llm_model": "gpt-4",
+    "llm_connection_slug": "",
     "bot_enabled": True,
 }
 

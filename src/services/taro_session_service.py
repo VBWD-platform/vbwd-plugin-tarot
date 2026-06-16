@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Optional, Tuple, List
 from datetime import timedelta
 from vbwd.utils.datetime_utils import utcnow
+from vbwd.llm.errors import LlmError
 from uuid import uuid4
 from random import randint
 import os
@@ -16,10 +17,36 @@ from plugins.taro.src.repositories.taro_card_draw_repository import (
     TaroCardDrawRepository,
 )
 from plugins.taro.src.enums import TaroSessionStatus, CardPosition, CardOrientation
-from plugins.chat.src.llm_adapter import LLMAdapter, LLMError
 from plugins.taro.src.services.prompt_service import PromptService
 
 logger = logging.getLogger(__name__)
+
+# taro's stable LLM-failure type. Since S97.5 the actual LLM call routes through
+# the CORE client (``vbwd.llm``); taro re-exposes its failure under this name so
+# the service + routes keep one error type to catch (no cross-plugin import).
+LLMError = LlmError
+
+
+class CoreClientChatAdapter:
+    """Thin ``.chat(messages=…)`` adapter over the CORE LLM client (S97.5).
+
+    taro's reading flow calls ``self.llm_adapter.chat(messages=…)`` with a
+    per-plugin system prompt baked in at construction. The core client takes the
+    system prompt per call, so this adapter binds it once and threads it through.
+    A core :class:`LlmError` surfaces as taro's :class:`LLMError` so the existing
+    caller contract (and its ``except LLMError``) is preserved.
+    """
+
+    def __init__(self, llm_client, *, system_prompt: str) -> None:
+        self._llm_client = llm_client
+        self._system_prompt = system_prompt
+
+    def chat(self, messages: list) -> str:
+        try:
+            return self._llm_client.chat(messages, system_prompt=self._system_prompt)
+        except LlmError as core_error:
+            raise LLMError(str(core_error)) from core_error
+
 
 # Positions for a full free reading, in spread order (PAST → PRESENT → FUTURE).
 FULL_READING_POSITIONS = [
@@ -61,7 +88,7 @@ class TaroSessionService:
         arcana_repo: ArcanaRepository,
         session_repo: TaroSessionRepository,
         card_draw_repo: TaroCardDrawRepository,
-        llm_adapter: Optional[LLMAdapter] = None,
+        llm_adapter: Optional["CoreClientChatAdapter"] = None,
         prompt_service: Optional[PromptService] = None,
     ):
         """Initialize service with repositories, LLM adapter, and prompt service."""
@@ -80,48 +107,47 @@ class TaroSessionService:
         self.prompt_service = prompt_service
 
     @staticmethod
-    def _initialize_llm_adapter() -> Optional[LLMAdapter]:
-        """Initialize LLM adapter from plugin configuration."""
+    def _initialize_llm_adapter() -> Optional["CoreClientChatAdapter"]:
+        """Resolve the chat adapter from the CORE LLM connection (S97.5).
+
+        taro keeps only the optional ``llm_connection_slug`` (empty ⇒ the active
+        default connection); the model/endpoint/key live in the central LLM
+        connection. When no active connection can be resolved (or no app context
+        is available) the adapter stays ``None`` and the reading flow degrades to
+        the fallback meanings — exactly as before.
+        """
         try:
-            # Read plugin configuration from config.json (runtime config at plugins/config.json)
-            plugins_dir = os.path.dirname(
-                os.path.dirname(
-                    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                )
+            from flask import current_app
+
+            taro_config = TaroSessionService._read_plugin_config()
+            slug = taro_config.get("llm_connection_slug") or None
+            system_prompt = taro_config.get(
+                "system_prompt",
+                "You are an expert Tarot card reader providing mystical insights.",
             )
-            config_path = os.path.join(plugins_dir, "config.json")
 
-            if not os.path.exists(config_path):
-                logger.warning(f"Plugin config file not found at {config_path}")
-                return None
-
-            with open(config_path, "r") as f:
-                config_data = json.load(f)
-
-            taro_config = config_data.get("taro", {})
-            api_endpoint = taro_config.get("llm_api_endpoint")
-            api_key = taro_config.get("llm_api_key")
-            model = taro_config.get("llm_model", "gpt-4")
-            max_tokens = taro_config.get("llm_max_tokens", 800)
-
-            if not api_endpoint or not api_key:
-                logger.warning(
-                    "LLM credentials not configured in plugin config. "
-                    "Card interpretations will use fallback meanings."
-                )
-                return None
-
-            return LLMAdapter(
-                api_endpoint=api_endpoint,
-                api_key=api_key,
-                model=model,
-                system_prompt="You are an expert Tarot card reader providing mystical insights.",
-                timeout=30,
-                max_tokens=max_tokens,
+            llm_client = current_app.container.llm_client(slug=slug)
+            return CoreClientChatAdapter(llm_client, system_prompt=system_prompt)
+        except Exception as initialization_error:
+            logger.warning(
+                "No active LLM connection for taro (%s). "
+                "Card interpretations will use fallback meanings.",
+                initialization_error,
             )
-        except Exception as e:
-            logger.error(f"Failed to initialize LLM adapter: {e}")
             return None
+
+    @staticmethod
+    def _read_plugin_config() -> dict:
+        """Read the taro section of the runtime plugin config (best effort)."""
+        plugins_dir = os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        )
+        config_path = os.path.join(plugins_dir, "config.json")
+        if not os.path.exists(config_path):
+            return {}
+        with open(config_path, "r") as config_file:
+            config_data = json.load(config_file)
+        return config_data.get("taro", {})
 
     @staticmethod
     def _initialize_prompt_service() -> Optional[PromptService]:

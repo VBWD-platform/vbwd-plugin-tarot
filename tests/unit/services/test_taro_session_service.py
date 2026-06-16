@@ -15,7 +15,7 @@ from plugins.taro.src.enums import (
     CardPosition,
     CardOrientation,
 )
-from plugins.chat.src.llm_adapter import LLMError
+from plugins.taro.src.services.taro_session_service import LLMError
 
 
 @pytest.fixture

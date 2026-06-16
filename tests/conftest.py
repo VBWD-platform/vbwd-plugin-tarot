@@ -2,26 +2,9 @@
 import pytest
 import os
 import sys
-from types import ModuleType
 
-# Stub plugins.chat so taro tests run standalone (chat plugin not installed in CI)
-if "plugins.chat" not in sys.modules:
-    _chat_llm = ModuleType("plugins.chat.src.llm_adapter")
-
-    class _StubLLMAdapter:
-        """LLM stub that returns real strings instead of MagicMock."""
-
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def chat(self, *args, **kwargs):
-            return "Stub AI interpretation for testing."
-
-    _chat_llm.LLMAdapter = _StubLLMAdapter  # type: ignore[attr-defined]
-    _chat_llm.LLMError = type("LLMError", (Exception,), {})  # type: ignore[attr-defined]
-    sys.modules["plugins.chat"] = ModuleType("plugins.chat")
-    sys.modules["plugins.chat.src"] = ModuleType("plugins.chat.src")
-    sys.modules["plugins.chat.src.llm_adapter"] = _chat_llm
+# taro no longer imports any chat LLM module (S97.5): the LLM call routes through
+# the CORE client, so the old ``plugins.chat`` stub is gone — taro is decoupled.
 
 # Add src and plugins to path for proper imports
 sys.path.insert(

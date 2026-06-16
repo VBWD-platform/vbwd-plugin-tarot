@@ -1,28 +1,8 @@
 {
-  "llm_api_endpoint": {
+  "llm_connection_slug": {
     "type": "string",
     "default": "",
-    "description": "OpenAI-compatible API endpoint (e.g. https://api.openai.com/v1/chat/completions)"
-  },
-  "llm_api_key": {
-    "type": "string",
-    "default": "",
-    "description": "API key for the LLM provider"
-  },
-  "llm_model": {
-    "type": "string",
-    "default": "gpt-4",
-    "description": "LLM model for card interpretations"
-  },
-  "llm_temperature": {
-    "type": "number",
-    "default": 0.8,
-    "description": "LLM temperature (0.0-1.0) for creativity level"
-  },
-  "llm_max_tokens": {
-    "type": "number",
-    "default": 200,
-    "description": "Maximum tokens per interpretation"
+    "description": "Slug of the central LLM Connection to use (Settings > LLM Connections). Blank = the active default connection."
   },
   "session_duration_minutes": {
     "type": "number",

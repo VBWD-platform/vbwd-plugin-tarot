@@ -23,7 +23,10 @@ from plugins.taro.src.repositories.taro_card_draw_repository import (
 )
 from plugins.taro.src.models.arcana import Arcana
 from plugins.taro.src.enums import ArcanaType
-from plugins.chat.src.llm_adapter import LLMAdapter, LLMError
+from plugins.taro.src.services.taro_session_service import (
+    CoreClientChatAdapter,
+    LLMError,
+)
 
 
 def load_taro_config():
@@ -84,28 +87,26 @@ def taro_config():
 
 
 @pytest.fixture
-def llm_adapter(taro_config):
-    """Fixture providing real LLM adapter with actual credentials"""
+def llm_adapter(app, taro_config):
+    """Real LLM adapter over the CORE client (S97.5).
+
+    The model/endpoint/key now live in a central LLM connection; this fixture
+    resolves the core client for taro's ``llm_connection_slug`` (else the active
+    default) and skips when no active connection exists (the CI / local default).
+    """
     if os.getenv("SKIP_LLM_TESTS") == "1":
         pytest.skip("SKIP_LLM_TESTS=1")
 
-    api_endpoint = taro_config.get("llm_api_endpoint")
-    api_key = taro_config.get("llm_api_key")
-    model = taro_config.get("llm_model", "deepseek-reasoner")
+    slug = taro_config.get("llm_connection_slug") or None
+    try:
+        with app.app_context():
+            llm_client = app.container.llm_client(slug=slug)
+    except Exception:
+        pytest.skip("No active LLM connection configured")
 
-    if not api_endpoint or not api_key:
-        pytest.skip("LLM credentials not configured")
-
-    # Skip if LLMAdapter is a stub (chat plugin not installed)
-    if not hasattr(LLMAdapter, "__module__") or "mock" in str(type(LLMAdapter)).lower():
-        pytest.skip("LLMAdapter is a stub — real chat plugin required")
-
-    return LLMAdapter(
-        api_endpoint=api_endpoint,
-        api_key=api_key,
-        model=model,
+    return CoreClientChatAdapter(
+        llm_client,
         system_prompt="You are an expert Tarot card reader providing mystical insights.",
-        timeout=60,
     )
 
 
@@ -373,19 +374,16 @@ class TestRealLLMLanguageCommunication:
             pytest.fail(f"LLM API call failed: {e}")
 
     def test_real_llm_error_handling(self, db, prompt_service):
-        """Test error handling with invalid LLM credentials"""
-        from plugins.chat.src.llm_adapter import LLMAdapter as BadLLMAdapter
+        """A core LLM failure surfaces as taro's ``LLMError`` to the caller."""
+        from unittest.mock import MagicMock
 
-        if "Stub" in BadLLMAdapter.__name__ or "Mock" in str(type(BadLLMAdapter)):
-            pytest.skip("LLMAdapter is a stub — real chat plugin required")
+        from vbwd.llm.errors import LlmError
 
-        # Create adapter with invalid credentials
-        bad_llm = BadLLMAdapter(
-            api_endpoint="https://api.invalid.com",
-            api_key="invalid-key-12345",
-            model="invalid-model",
-            timeout=5,
-        )
+        # A core client whose call fails — wrapped by taro's chat adapter, which
+        # must re-raise the failure as taro's own LLMError.
+        failing_client = MagicMock()
+        failing_client.chat.side_effect = LlmError("invalid credentials")
+        bad_llm = CoreClientChatAdapter(failing_client, system_prompt="x")
 
         arcana_repo = ArcanaRepository(db.session)
         session_repo = TaroSessionRepository(db.session)
@@ -424,10 +422,9 @@ class TestLLMConfigurationLoading:
         if not config:
             pytest.skip("plugins/taro/config.json is empty in this environment")
 
-        # Validate required fields exist
-        assert "llm_api_endpoint" in config
-        assert "llm_api_key" in config
-        assert "llm_model" in config
+        # Validate required fields exist (the model/endpoint/key now live in the
+        # central LLM connection; taro keeps only the connection slug).
+        assert "llm_connection_slug" in config
         assert "system_prompt" in config
 
     def test_taro_config_has_language_templates(self):
@@ -444,29 +441,22 @@ class TestLLMConfigurationLoading:
         assert "card_explanation_template" in config
         assert "follow_up_question_template" in config
 
-    def test_create_llm_adapter_from_config(self, taro_config):
-        """Test creating LLMAdapter from actual config"""
-        if "Stub" in LLMAdapter.__name__ or "Mock" in str(type(LLMAdapter)):
-            pytest.skip("LLMAdapter is a stub — real chat plugin required")
+    def test_create_chat_adapter_over_core_client(self):
+        """taro's chat adapter wraps a core client and chats through it."""
+        from unittest.mock import MagicMock
 
-        api_endpoint = taro_config.get("llm_api_endpoint")
-        api_key = taro_config.get("llm_api_key")
-        model = taro_config.get("llm_model")
+        core_client = MagicMock()
+        core_client.chat.return_value = "A mystical reading."
 
-        if not api_endpoint or not api_key:
-            pytest.skip("LLM credentials not configured")
-
-        # Should be able to create adapter without errors
-        adapter = LLMAdapter(
-            api_endpoint=api_endpoint,
-            api_key=api_key,
-            model=model,
-            timeout=30,
+        adapter = CoreClientChatAdapter(
+            core_client, system_prompt="You are a Tarot reader."
         )
 
-        assert adapter is not None
-        assert adapter.api_endpoint is not None
-        assert adapter.model == model
+        reply = adapter.chat(messages=[{"role": "user", "content": "Draw a card"}])
+
+        assert reply == "A mystical reading."
+        _args, call_kwargs = core_client.chat.call_args
+        assert call_kwargs["system_prompt"] == "You are a Tarot reader."
 
     def test_prompt_service_loads_from_config_templates(self, taro_config):
         """Test that PromptService can be created from config templates"""

@@ -17,11 +17,10 @@ if TYPE_CHECKING:
 
 
 DEFAULT_CONFIG = {
-    "llm_api_endpoint": "",
-    "llm_api_key": "",
-    "llm_model": "gpt-4",
-    "llm_temperature": 0.8,
-    "llm_max_tokens": 200,
+    # The model/endpoint/key now live in a CORE "LLM Connection" (S97). taro
+    # keeps only the optional slug of the connection to use; empty ⇒ the active
+    # default connection.
+    "llm_connection_slug": "",
     "session_duration_minutes": 30,
     "session_expiry_warning_minutes": 3,
     "base_session_tokens": 10,

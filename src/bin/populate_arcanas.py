@@ -10,7 +10,7 @@ This script creates:
 - 14 Pentacles cards (Ace-King)
 
 Usage:
-    python src/plugins/taro/bin/populate_arcanas.py
+    python src/plugins/tarot/bin/populate_arcanas.py
 """
 import sys
 from pathlib import Path
@@ -20,8 +20,8 @@ project_root = Path(__file__).parent.parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from vbwd.extensions import db  # noqa: E402
-from plugins.taro.src.models.arcana import Arcana  # noqa: E402
-from plugins.taro.src.enums import ArcanaType  # noqa: E402
+from plugins.tarot.src.models.arcana import Arcana  # noqa: E402
+from plugins.tarot.src.enums import ArcanaType  # noqa: E402
 
 
 # 22 Major Arcana (0-21)
@@ -534,7 +534,7 @@ def populate_arcanas():
             arcana_type=ArcanaType.MAJOR_ARCANA.value,
             upright_meaning=upright,
             reversed_meaning=reversed,
-            image_url=f"/api/v1/taro/assets/arcana/major/{number:02d}-{name.lower().replace(' ', '-')}.svg",
+            image_url=f"/api/v1/tarot/assets/arcana/major/{number:02d}-{name.lower().replace(' ', '-')}.svg",
         )
         db.session.add(arcana)
         cards_created += 1
@@ -554,7 +554,7 @@ def populate_arcanas():
                 arcana_type=suit,
                 upright_meaning=upright,
                 reversed_meaning=reversed,
-                image_url=f"/api/v1/taro/assets/arcana/minor/{suit.lower()}/{rank.lower()}-of-{suit.lower()}.svg",
+                image_url=f"/api/v1/tarot/assets/arcana/minor/{suit.lower()}/{rank.lower()}-of-{suit.lower()}.svg",
             )
             db.session.add(arcana)
             cards_created += 1

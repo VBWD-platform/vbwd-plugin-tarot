@@ -1,16 +1,16 @@
-"""Tests for TaroCardDraw model."""
+"""Tests for TarotCardDraw model."""
 import pytest
 from uuid import uuid4
-from plugins.taro.src.models.taro_card_draw import TaroCardDraw
-from plugins.taro.src.enums import ArcanaType, CardPosition, CardOrientation
+from plugins.tarot.src.models.tarot_card_draw import TarotCardDraw
+from plugins.tarot.src.enums import ArcanaType, CardPosition, CardOrientation
 
 
-class TestTaroCardDrawCreation:
-    """Test TaroCardDraw model creation and validation."""
+class TestTarotCardDrawCreation:
+    """Test TarotCardDraw model creation and validation."""
 
     def test_card_draw_creation(self):
-        """Test creating a TaroCardDraw with all fields."""
-        card_draw = TaroCardDraw(
+        """Test creating a TarotCardDraw with all fields."""
+        card_draw = TarotCardDraw(
             session_id="session-123",
             arcana_id="arcana-456",
             position=CardPosition.PAST,
@@ -25,9 +25,9 @@ class TestTaroCardDrawCreation:
         assert card_draw.ai_interpretation == "This card represents..."
 
     def test_card_draw_requires_session_id(self, db):
-        """Test that TaroCardDraw requires a session_id at database level."""
+        """Test that TarotCardDraw requires a session_id at database level."""
         from sqlalchemy.exc import IntegrityError
-        from plugins.taro.src.models.arcana import Arcana
+        from plugins.tarot.src.models.arcana import Arcana
 
         arcana = Arcana(
             name="Test Card",
@@ -39,7 +39,7 @@ class TestTaroCardDrawCreation:
         db.session.add(arcana)
         db.session.commit()
 
-        card = TaroCardDraw(
+        card = TarotCardDraw(
             arcana_id=str(arcana.id),
             position=CardPosition.PAST.value,
             orientation=CardOrientation.UPRIGHT.value,
@@ -51,10 +51,10 @@ class TestTaroCardDrawCreation:
         db.session.rollback()
 
     def test_card_draw_requires_arcana_id(self, db):
-        """Test that TaroCardDraw requires an arcana_id at database level."""
+        """Test that TarotCardDraw requires an arcana_id at database level."""
         from sqlalchemy.exc import IntegrityError
 
-        card = TaroCardDraw(
+        card = TarotCardDraw(
             session_id=str(uuid4()),
             position=CardPosition.PAST.value,
             orientation=CardOrientation.UPRIGHT.value,
@@ -67,7 +67,7 @@ class TestTaroCardDrawCreation:
 
     def test_card_position_past(self):
         """Test card position PAST."""
-        card_draw = TaroCardDraw(
+        card_draw = TarotCardDraw(
             session_id="session-123",
             arcana_id="arcana-456",
             position=CardPosition.PAST,
@@ -79,7 +79,7 @@ class TestTaroCardDrawCreation:
 
     def test_card_position_present(self):
         """Test card position PRESENT."""
-        card_draw = TaroCardDraw(
+        card_draw = TarotCardDraw(
             session_id="session-123",
             arcana_id="arcana-456",
             position=CardPosition.PRESENT,
@@ -91,7 +91,7 @@ class TestTaroCardDrawCreation:
 
     def test_card_position_future(self):
         """Test card position FUTURE."""
-        card_draw = TaroCardDraw(
+        card_draw = TarotCardDraw(
             session_id="session-123",
             arcana_id="arcana-456",
             position=CardPosition.FUTURE,
@@ -103,7 +103,7 @@ class TestTaroCardDrawCreation:
 
     def test_card_orientation_upright(self):
         """Test card orientation UPRIGHT."""
-        card_draw = TaroCardDraw(
+        card_draw = TarotCardDraw(
             session_id="session-123",
             arcana_id="arcana-456",
             position=CardPosition.PAST,
@@ -115,7 +115,7 @@ class TestTaroCardDrawCreation:
 
     def test_card_orientation_reversed(self):
         """Test card orientation REVERSED."""
-        card_draw = TaroCardDraw(
+        card_draw = TarotCardDraw(
             session_id="session-123",
             arcana_id="arcana-456",
             position=CardPosition.PAST,
@@ -128,7 +128,7 @@ class TestTaroCardDrawCreation:
     def test_ai_interpretation_required(self, db):
         """Test that ai_interpretation is required at database level."""
         from sqlalchemy.exc import IntegrityError
-        from plugins.taro.src.models.arcana import Arcana
+        from plugins.tarot.src.models.arcana import Arcana
 
         arcana = Arcana(
             name="Test Card",
@@ -140,7 +140,7 @@ class TestTaroCardDrawCreation:
         db.session.add(arcana)
         db.session.commit()
 
-        card = TaroCardDraw(
+        card = TarotCardDraw(
             session_id=str(uuid4()),
             arcana_id=str(arcana.id),
             position=CardPosition.PAST.value,
@@ -153,7 +153,7 @@ class TestTaroCardDrawCreation:
 
     def test_three_card_spread_with_different_positions(self):
         """Test a complete 3-card spread."""
-        past_card = TaroCardDraw(
+        past_card = TarotCardDraw(
             session_id="session-123",
             arcana_id="arcana-1",
             position=CardPosition.PAST,
@@ -161,7 +161,7 @@ class TestTaroCardDrawCreation:
             ai_interpretation="Past interpretation",
         )
 
-        present_card = TaroCardDraw(
+        present_card = TarotCardDraw(
             session_id="session-123",
             arcana_id="arcana-2",
             position=CardPosition.PRESENT,
@@ -169,7 +169,7 @@ class TestTaroCardDrawCreation:
             ai_interpretation="Present interpretation",
         )
 
-        future_card = TaroCardDraw(
+        future_card = TarotCardDraw(
             session_id="session-123",
             arcana_id="arcana-3",
             position=CardPosition.FUTURE,
@@ -184,8 +184,8 @@ class TestTaroCardDrawCreation:
         assert len(positions) == 3
 
     def test_card_draw_to_dict(self):
-        """Test TaroCardDraw.to_dict() method."""
-        card_draw = TaroCardDraw(
+        """Test TarotCardDraw.to_dict() method."""
+        card_draw = TarotCardDraw(
             session_id="session-123",
             arcana_id="arcana-456",
             position=CardPosition.PAST,
@@ -203,7 +203,7 @@ class TestTaroCardDrawCreation:
 
     def test_card_draw_timestamps(self, db):
         """Test that created_at is set after persisting."""
-        from plugins.taro.src.models.arcana import Arcana
+        from plugins.tarot.src.models.arcana import Arcana
 
         arcana = Arcana(
             name="Test Card",
@@ -215,7 +215,7 @@ class TestTaroCardDrawCreation:
         db.session.add(arcana)
         db.session.commit()
 
-        card_draw = TaroCardDraw(
+        card_draw = TarotCardDraw(
             session_id=str(uuid4()),
             arcana_id=str(arcana.id),
             position=CardPosition.PAST.value,
@@ -228,9 +228,9 @@ class TestTaroCardDrawCreation:
         assert card_draw.created_at is not None
 
     def test_card_draw_id_is_uuid(self, db):
-        """Test that TaroCardDraw gets a UUID id after persisting."""
+        """Test that TarotCardDraw gets a UUID id after persisting."""
         from uuid import UUID
-        from plugins.taro.src.models.arcana import Arcana
+        from plugins.tarot.src.models.arcana import Arcana
 
         arcana = Arcana(
             name="Test Card",
@@ -242,7 +242,7 @@ class TestTaroCardDrawCreation:
         db.session.add(arcana)
         db.session.commit()
 
-        card_draw = TaroCardDraw(
+        card_draw = TarotCardDraw(
             session_id=str(uuid4()),
             arcana_id=str(arcana.id),
             position=CardPosition.PAST.value,

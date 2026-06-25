@@ -1,13 +1,13 @@
-"""TaroSession domain model - user Tarot reading session."""
+"""TarotSession domain model - user Tarot reading session."""
 from vbwd.utils.datetime_utils import utcnow
 from vbwd.extensions import db
 from vbwd.models.base import BaseModel
-from plugins.taro.src.enums import TaroSessionStatus
+from plugins.tarot.src.enums import TarotSessionStatus
 
 
-class TaroSession(BaseModel):
+class TarotSession(BaseModel):
     """
-    TaroSession model represents an active or completed Tarot reading session.
+    TarotSession model represents an active or completed Tarot reading session.
 
     A session:
     - Contains one 3-card spread (Past, Present, Future)
@@ -22,7 +22,7 @@ class TaroSession(BaseModel):
     3. CLOSED: User explicitly ended session or expired naturally
     """
 
-    __tablename__ = "taro_session"
+    __tablename__ = "tarot_session"
 
     # User reference
     user_id = db.Column(db.UUID, nullable=False, index=True)  # FK to user
@@ -31,7 +31,7 @@ class TaroSession(BaseModel):
     status = db.Column(
         db.String(50),
         nullable=False,
-        default=TaroSessionStatus.ACTIVE.value,
+        default=TarotSessionStatus.ACTIVE.value,
         index=True,
     )
 
@@ -66,16 +66,16 @@ class TaroSession(BaseModel):
 
     # Relationships
     cards = db.relationship(
-        "TaroCardDraw",
-        foreign_keys="TaroCardDraw.session_id",
-        primaryjoin="TaroSession.id == TaroCardDraw.session_id",
+        "TarotCardDraw",
+        foreign_keys="TarotCardDraw.session_id",
+        primaryjoin="TarotSession.id == TarotCardDraw.session_id",
         backref="session",
         lazy="joined",
         cascade="all, delete-orphan",
     )
 
     def to_dict(self) -> dict:
-        """Convert TaroSession to dictionary for API response."""
+        """Convert TarotSession to dictionary for API response."""
         return {
             "id": str(self.id),
             "user_id": str(self.user_id) if self.user_id else None,
@@ -93,4 +93,4 @@ class TaroSession(BaseModel):
         }
 
     def __repr__(self) -> str:
-        return f"<TaroSession(user_id='{self.user_id}', status='{self.status}', spread_id='{self.spread_id}')>"
+        return f"<TarotSession(user_id='{self.user_id}', status='{self.status}', spread_id='{self.spread_id}')>"

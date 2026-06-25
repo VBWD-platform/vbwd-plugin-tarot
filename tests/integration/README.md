@@ -21,19 +21,19 @@ The unit tests mock the LLM adapter. These integration tests use the **actual LL
 ### Run All Integration Tests
 ```bash
 cd vbwd-backend
-pytest plugins/taro/tests/integration/test_real_llm_language.py -v -s
+pytest plugins/tarot/tests/integration/test_real_llm_language.py -v -s
 ```
 
 The `-s` flag shows print output (useful to see actual LLM responses).
 
 ### Run Specific Test
 ```bash
-pytest plugins/taro/tests/integration/test_real_llm_language.py::TestRealLLMLanguageCommunication::test_real_llm_situation_reading_with_russian_language -v -s
+pytest plugins/tarot/tests/integration/test_real_llm_language.py::TestRealLLMLanguageCommunication::test_real_llm_situation_reading_with_russian_language -v -s
 ```
 
 ### Skip LLM Tests (for CI/CD without API keys)
 ```bash
-SKIP_LLM_TESTS=1 pytest plugins/taro/tests/unit/...
+SKIP_LLM_TESTS=1 pytest plugins/tarot/tests/unit/...
 ```
 
 Or set environment variable before running:
@@ -117,7 +117,7 @@ The tests load configuration from:
 
 ```json
 {
-  "taro": {
+  "tarot": {
     "llm_api_endpoint": "https://api.deepseek.com",
     "llm_api_key": "sk-...",
     "llm_model": "deepseek-reasoner",

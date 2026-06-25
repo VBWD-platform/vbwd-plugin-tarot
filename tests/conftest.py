@@ -1,10 +1,10 @@
-"""Test fixtures for Taro plugin tests."""
+"""Test fixtures for Tarot plugin tests."""
 import pytest
 import os
 import sys
 
-# taro no longer imports any chat LLM module (S97.5): the LLM call routes through
-# the CORE client, so the old ``plugins.chat`` stub is gone — taro is decoupled.
+# tarot no longer imports any chat LLM module (S97.5): the LLM call routes through
+# the CORE client, so the old ``plugins.chat`` stub is gone — tarot is decoupled.
 
 # Add src and plugins to path for proper imports
 sys.path.insert(
@@ -79,8 +79,8 @@ def app():
         from vbwd.extensions import db as _db
 
         # Model-registration imports are load-bearing (SQLAlchemy table mapping)
-        # so the one-time create_all() builds the taro tables too.
-        import plugins.taro.src.models  # noqa: F401
+        # so the one-time create_all() builds the tarot tables too.
+        import plugins.tarot.src.models  # noqa: F401
         from vbwd.testing.integration_db import ensure_schema_and_baseline
 
         ensure_schema_and_baseline(_db)

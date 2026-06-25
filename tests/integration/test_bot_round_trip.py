@@ -1,11 +1,11 @@
-"""Integration: taro bot-consumer round-trip over the fake Telegram client (S45.3).
+"""Integration: tarot bot-consumer round-trip over the fake Telegram client (S45.3).
 
-Boots taro + bot-base + bot-telegram, seeds arcanas through taro's repository
+Boots tarot + bot-base + bot-telegram, seeds arcanas through tarot's repository
 (no raw SQL), then drives inbound ``/draw`` / ``/reading`` through the webhook.
 Asserts the reading is delivered through bot-base and that **no** token debit
-occurs for either an UNLINKED (anonymous) or a LINKED sender — taro-over-bot is
+occurs for either an UNLINKED (anonymous) or a LINKED sender — tarot-over-bot is
 free. The Telegram transport is faked (no network); all data is created through
-core services / the taro repository.
+core services / the tarot repository.
 """
 import uuid
 
@@ -13,7 +13,7 @@ import pytest
 
 from vbwd.models.enums import TokenTransactionType, UserRole
 
-TARO_BOT_CONFIG = {
+TAROT_BOT_CONFIG = {
     "llm_connection_slug": "",
     "bot_enabled": True,
 }
@@ -29,7 +29,7 @@ def _register_user(app, email: str):
 
     auth_service = app.container.auth_service()
     unique_email = email.replace("@", f"+{uuid.uuid4().hex[:8]}@")
-    result = auth_service.register(email=unique_email, password="TaroBot123@")
+    result = auth_service.register(email=unique_email, password="TarotBot123@")
     db.session.commit()
     user = UserRepository(db.session).find_by_id(result.user_id)
     return str(user.id), result.token
@@ -47,7 +47,7 @@ def _promote_to_admin(app, user_id: str) -> None:
 
 def _admin_headers(app):
     with app.app_context():
-        user_id, token = _register_user(app, "tarobotadmin@example.com")
+        user_id, token = _register_user(app, "tarotbotadmin@example.com")
         _promote_to_admin(app, user_id)
     return {"Authorization": f"Bearer {token}"}
 
@@ -55,11 +55,11 @@ def _admin_headers(app):
 def _create_bot(app, client):
     headers = _admin_headers(app)
     body = {
-        "name": f"tarobot-{uuid.uuid4().hex[:6]}",
-        "username": "vbwd_taro_bot",
-        "token": "222:TARO_BOT_TOKEN",
+        "name": f"tarotbot-{uuid.uuid4().hex[:6]}",
+        "username": "vbwd_tarot_bot",
+        "token": "222:TAROT_BOT_TOKEN",
         "default": True,
-        "webhook_secret": "taro-wh-secret",
+        "webhook_secret": "tarot-wh-secret",
         "enabled": True,
     }
     response = client.post(
@@ -69,32 +69,32 @@ def _create_bot(app, client):
     return body["name"], body["webhook_secret"]
 
 
-def _enable_taro_bot(app, monkeypatch):
-    """Turn on the taro bot seam on the live plugin + config store (test-scoped).
+def _enable_tarot_bot(app, monkeypatch):
+    """Turn on the tarot bot seam on the live plugin + config store (test-scoped).
 
     Mutates the already-enabled plugin's config in place (``set_config``) so its
     ENABLED status is preserved — ``initialize`` would reset status to
     INITIALIZED and drop it from ``get_enabled_plugins``.
     """
-    plugin = app.plugin_manager.get_plugin("taro")
-    for key, value in TARO_BOT_CONFIG.items():
+    plugin = app.plugin_manager.get_plugin("tarot")
+    for key, value in TAROT_BOT_CONFIG.items():
         plugin.set_config(key, value)
 
     original_get_config = app.config_store.get_config
 
     def _patched_get_config(plugin_name):
-        if plugin_name == "taro":
-            return dict(TARO_BOT_CONFIG)
+        if plugin_name == "tarot":
+            return dict(TAROT_BOT_CONFIG)
         return original_get_config(plugin_name)
 
     monkeypatch.setattr(app.config_store, "get_config", _patched_get_config)
 
 
 def _seed_arcanas(app):
-    """Seed a deck through taro's repository (service/repo layer, no raw SQL)."""
+    """Seed a deck through tarot's repository (service/repo layer, no raw SQL)."""
     from vbwd.extensions import db
-    from plugins.taro.src.repositories.arcana_repository import ArcanaRepository
-    from plugins.taro.src.enums import ArcanaType
+    from plugins.tarot.src.repositories.arcana_repository import ArcanaRepository
+    from plugins.tarot.src.enums import ArcanaType
 
     repository = ArcanaRepository(db.session)
     if repository.get_all():
@@ -164,7 +164,7 @@ def test_draw_round_trip_anonymous_bills_nothing(
 ):
     fake_telegram = _inject_fake_telegram_client
 
-    _enable_taro_bot(app, monkeypatch)
+    _enable_tarot_bot(app, monkeypatch)
     bot_name, secret = _create_bot(app, client)
 
     with app.app_context():
@@ -188,12 +188,12 @@ def test_reading_round_trip_linked_sender_bills_nothing(
 ):
     fake_telegram = _inject_fake_telegram_client
 
-    _enable_taro_bot(app, monkeypatch)
+    _enable_tarot_bot(app, monkeypatch)
     bot_name, secret = _create_bot(app, client)
 
     with app.app_context():
         _seed_arcanas(app)
-        user_id, _token = _register_user(app, "tarobotuser@example.com")
+        user_id, _token = _register_user(app, "tarotbotuser@example.com")
         _grant_tokens(app, user_id, 1000)
         _issue_and_redeem_link(app, user_id, LINKED_SENDER)
         starting_balance = app.container.token_service().get_balance(uuid.UUID(user_id))
@@ -210,5 +210,5 @@ def test_reading_round_trip_linked_sender_bills_nothing(
     with app.app_context():
         final_balance = app.container.token_service().get_balance(uuid.UUID(user_id))
 
-    # DoD: NO token debit for a taro bot command, even for a linked user.
+    # DoD: NO token debit for a tarot bot command, even for a linked user.
     assert final_balance == starting_balance

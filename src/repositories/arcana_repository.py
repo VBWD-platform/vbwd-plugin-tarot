@@ -2,8 +2,8 @@
 from typing import Optional, List, Dict
 from random import sample
 from vbwd.extensions import db
-from plugins.taro.src.models.arcana import Arcana
-from plugins.taro.src.enums import ArcanaType
+from plugins.tarot.src.models.arcana import Arcana
+from plugins.tarot.src.enums import ArcanaType
 
 
 class ArcanaRepository:

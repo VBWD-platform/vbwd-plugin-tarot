@@ -10,12 +10,12 @@ class TestPromptServiceLoad:
 
     def test_load_prompts_success(self):
         """Should load prompts from JSON file successfully"""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         # Create temp file with test prompts
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             test_prompts = {
-                "_meta": {"version": "1.0", "plugin": "taro"},
+                "_meta": {"version": "1.0", "plugin": "tarot"},
                 "_defaults": {"temperature": 0.7, "max_tokens": 2000, "timeout": 30},
                 "test_prompt": {"template": "Test: {{value}}", "variables": ["value"]},
             }
@@ -32,7 +32,7 @@ class TestPromptServiceLoad:
 
     def test_load_prompts_missing_file_error(self):
         """Should raise FileNotFoundError if file doesn't exist"""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         with pytest.raises(FileNotFoundError) as exc_info:
             PromptService("/nonexistent/path/prompts.json")
@@ -41,7 +41,7 @@ class TestPromptServiceLoad:
 
     def test_load_prompts_invalid_json_error(self):
         """Should raise JSONDecodeError if JSON is invalid"""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             f.write("invalid json {]")
@@ -59,7 +59,7 @@ class TestPromptServiceGetPrompt:
 
     def _make_service_with_prompts(self):
         """Helper to create service with test prompts"""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             test_prompts = {
@@ -141,7 +141,7 @@ class TestPromptServiceRender:
 
     def _make_service_with_prompts(self):
         """Helper to create service with test prompts"""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             test_prompts = {
@@ -191,7 +191,7 @@ class TestPromptServiceRender:
 
     def test_render_invalid_template_error(self):
         """Should raise error if template syntax is invalid"""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             test_prompts = {
@@ -230,7 +230,7 @@ class TestPromptServiceValidate:
 
     def _make_service(self):
         """Helper to create service"""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             test_prompts = {
@@ -272,7 +272,7 @@ class TestPromptServiceUpdate:
 
     def _make_service_with_prompts(self):
         """Helper to create service with test prompts"""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             test_prompts = {
@@ -351,7 +351,7 @@ class TestPromptServiceUpdateDefaults:
 
     def _make_service(self):
         """Helper to create service"""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             test_prompts = {
@@ -399,7 +399,7 @@ class TestPromptServiceReset:
 
     def test_reset_to_defaults(self):
         """Should reset to .dist file"""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create .dist file
@@ -437,7 +437,7 @@ class TestPromptServiceReset:
 
     def test_reset_to_defaults_missing_dist_file(self):
         """Should raise error if .dist file doesn't exist"""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump({"_defaults": {}, "test": {}}, f)
@@ -454,11 +454,11 @@ class TestPromptServiceReset:
 
 
 class TestLanguageVariableRendering:
-    """Tests for language variable rendering in Taro templates (TDD validation)"""
+    """Tests for language variable rendering in Tarot templates (TDD validation)"""
 
     def test_render_language_variable_single(self):
         """Should correctly render {{language}} variable with Russian"""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         service = PromptService.from_dict(
             {
@@ -474,7 +474,7 @@ class TestLanguageVariableRendering:
 
     def test_render_situation_reading_with_language(self):
         """Should render situation_reading template with language variable"""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         service = PromptService.from_dict(
             {
@@ -508,7 +508,7 @@ class TestLanguageVariableRendering:
     )
     def test_render_language_all_8_supported_languages(self, lang_code, lang_name):
         """Should correctly render all 8 supported language codes"""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         service = PromptService.from_dict(
             {
@@ -524,7 +524,7 @@ class TestLanguageVariableRendering:
 
     def test_render_card_explanation_with_language(self):
         """Should render card_explanation template with language"""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         service = PromptService.from_dict(
             {
@@ -548,7 +548,7 @@ class TestLanguageVariableRendering:
 
     def test_render_follow_up_question_with_language(self):
         """Should render follow_up_question template with language"""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         service = PromptService.from_dict(
             {
@@ -569,7 +569,7 @@ class TestLanguageVariableRendering:
 
     def test_render_language_with_empty_string_renders_empty(self):
         """Should render empty string if language variable not provided"""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         service = PromptService.from_dict(
             {
@@ -586,7 +586,7 @@ class TestLanguageVariableRendering:
 
     def test_render_language_instruction_appears_in_complex_template(self):
         """Should preserve language instruction in multi-paragraph template"""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         template = """You are an expert Tarot reader.
 

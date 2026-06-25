@@ -1,12 +1,12 @@
 """ArcanaInterpretationService - LLM integration for card interpretations."""
 import logging
 from typing import Tuple, List
-from plugins.taro.src.repositories.taro_card_draw_repository import (
-    TaroCardDrawRepository,
+from plugins.tarot.src.repositories.tarot_card_draw_repository import (
+    TarotCardDrawRepository,
 )
-from plugins.taro.src.models.arcana import Arcana
-from plugins.taro.src.models.taro_card_draw import TaroCardDraw
-from plugins.taro.src.enums import CardPosition, CardOrientation
+from plugins.tarot.src.models.arcana import Arcana
+from plugins.tarot.src.models.tarot_card_draw import TarotCardDraw
+from plugins.tarot.src.enums import CardPosition, CardOrientation
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ class ArcanaInterpretationService:
     def __init__(
         self,
         llm_client,  # LLM client (e.g., OpenAI, Anthropic, etc.)
-        card_draw_repo: TaroCardDrawRepository,
+        card_draw_repo: TarotCardDrawRepository,
         model_name: str = "gpt-4",
         temperature: float = 0.8,
         max_tokens: int = 200,
@@ -132,12 +132,12 @@ Keep it concise and mystical."""
 
     def interpret_spread(
         self,
-        cards: List[TaroCardDraw],
+        cards: List[TarotCardDraw],
     ) -> Tuple[str, int]:
         """Generate cohesive interpretation for entire 3-card spread.
 
         Args:
-            cards: List of TaroCardDraw cards (typically 3)
+            cards: List of TarotCardDraw cards (typically 3)
 
         Returns:
             Tuple of (spread_interpretation: str, tokens_used: int)
@@ -173,7 +173,7 @@ Keep it concise and mystical."""
             return fallback, 10
 
     def _build_spread_prompt(
-        self, arcana_list: List[Tuple[TaroCardDraw, Arcana]]
+        self, arcana_list: List[Tuple[TarotCardDraw, Arcana]]
     ) -> str:
         """Build LLM prompt for 3-card spread interpretation."""
         cards_text = ""

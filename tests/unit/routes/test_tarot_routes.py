@@ -1,4 +1,4 @@
-"""Tests for Taro plugin routes - simplified version without complex mocking."""
+"""Tests for Tarot plugin routes - simplified version without complex mocking."""
 import pytest
 from contextlib import contextmanager
 from unittest.mock import Mock, patch
@@ -29,9 +29,9 @@ def app():
     app = Flask(__name__)
     app.config["TESTING"] = True
     app.config["JWT_SECRET_KEY"] = "test-secret"
-    from plugins.taro.src.routes import taro_bp
+    from plugins.tarot.src.routes import tarot_bp
 
-    app.register_blueprint(taro_bp, url_prefix="/api/v1/taro")
+    app.register_blueprint(tarot_bp, url_prefix="/api/v1/tarot")
     return app
 
 
@@ -55,8 +55,8 @@ def mock_current_user():
     user.user_profile = Mock()
     user.user_profile.current_tarif_plan = Mock()
     user.user_profile.current_tarif_plan.id = "plan-star"
-    user.user_profile.current_tarif_plan.daily_taro_limit = 3
-    user.user_profile.current_tarif_plan.max_taro_follow_ups = 3
+    user.user_profile.current_tarif_plan.daily_tarot_limit = 3
+    user.user_profile.current_tarif_plan.max_tarot_follow_ups = 3
     return user
 
 
@@ -68,8 +68,8 @@ def mock_dispatcher():
     return dispatcher
 
 
-class TestTaroRoutes:
-    """Test Taro routes with proper mocking."""
+class TestTarotRoutes:
+    """Test Tarot routes with proper mocking."""
 
     def test_session_route_exists(self, client):
         """Test that session route is accessible."""
@@ -77,15 +77,15 @@ class TestTaroRoutes:
         user_id = str(uuid4())
         with auth_as(user_id):
             with patch(
-                "plugins.taro.src.routes.get_user_tarif_plan_limits",
+                "plugins.tarot.src.routes.get_user_tarif_plan_limits",
                 return_value=(3, 3),
             ):
                 with patch(
-                    "plugins.taro.src.routes.check_token_balance", return_value=True
+                    "plugins.tarot.src.routes.check_token_balance", return_value=True
                 ):
                     # The route should exist and handle the request
                     response = client.post(
-                        "/api/v1/taro/session", json={}, headers=_AUTH_HEADER
+                        "/api/v1/tarot/session", json={}, headers=_AUTH_HEADER
                     )
                     # Should not get 404 (route exists)
                     assert response.status_code != 404
@@ -101,7 +101,7 @@ class TestLanguageParameterInRoutes:
 
         with auth_as(user_id):
             with patch(
-                "plugins.taro.src.routes._get_taro_services"
+                "plugins.tarot.src.routes._get_tarot_services"
             ) as mock_get_services:
                 # Setup mocks
                 mock_service = Mock()
@@ -115,7 +115,7 @@ class TestLanguageParameterInRoutes:
 
                 # Call endpoint with language parameter
                 client.post(
-                    f"/api/v1/taro/session/{session_id}/situation",
+                    f"/api/v1/tarot/session/{session_id}/situation",
                     json={"situation_text": "My career question", "language": "ru"},
                     headers=_AUTH_HEADER,
                 )
@@ -132,7 +132,7 @@ class TestLanguageParameterInRoutes:
 
         with auth_as(user_id):
             with patch(
-                "plugins.taro.src.routes._get_taro_services"
+                "plugins.tarot.src.routes._get_tarot_services"
             ) as mock_get_services:
                 mock_service = Mock()
                 mock_service.get_session.return_value = Mock(
@@ -145,7 +145,7 @@ class TestLanguageParameterInRoutes:
 
                 # Call without language parameter
                 client.post(
-                    f"/api/v1/taro/session/{session_id}/situation",
+                    f"/api/v1/tarot/session/{session_id}/situation",
                     json={"situation_text": "My question"},
                     headers=_AUTH_HEADER,
                 )
@@ -164,7 +164,7 @@ class TestLanguageParameterInRoutes:
 
         with auth_as(user_id):
             with patch(
-                "plugins.taro.src.routes._get_taro_services"
+                "plugins.tarot.src.routes._get_tarot_services"
             ) as mock_get_services:
                 mock_service = Mock()
                 mock_service.get_session.return_value = Mock(
@@ -174,7 +174,7 @@ class TestLanguageParameterInRoutes:
                 mock_get_services.return_value = mock_service
 
                 client.post(
-                    f"/api/v1/taro/session/{session_id}/situation",
+                    f"/api/v1/tarot/session/{session_id}/situation",
                     json={"situation_text": "Test", "language": lang_code},
                     headers=_AUTH_HEADER,
                 )
@@ -190,7 +190,7 @@ class TestLanguageParameterInRoutes:
 
         with auth_as(user_id):
             with patch(
-                "plugins.taro.src.routes._get_taro_services"
+                "plugins.tarot.src.routes._get_tarot_services"
             ) as mock_get_services:
                 mock_service = Mock()
                 mock_service.get_session.return_value = Mock(
@@ -205,7 +205,7 @@ class TestLanguageParameterInRoutes:
                 mock_get_services.return_value = mock_service
 
                 client.post(
-                    f"/api/v1/taro/session/{session_id}/card-explanation",
+                    f"/api/v1/tarot/session/{session_id}/card-explanation",
                     json={"language": "de"},
                     headers=_AUTH_HEADER,
                 )
@@ -231,7 +231,7 @@ class TestLanguageParameterInRoutes:
 
         with auth_as(user_id):
             with patch(
-                "plugins.taro.src.routes._get_taro_services"
+                "plugins.tarot.src.routes._get_tarot_services"
             ) as mock_get_services:
                 mock_service = Mock()
                 mock_service.get_session.return_value = Mock(
@@ -248,7 +248,7 @@ class TestLanguageParameterInRoutes:
                 mock_get_services.return_value = mock_service
 
                 response = client.post(
-                    f"/api/v1/taro/session/{session_id}/card-explanation",
+                    f"/api/v1/tarot/session/{session_id}/card-explanation",
                     json={"language": lang_code},
                     headers=_AUTH_HEADER,
                 )
@@ -267,7 +267,7 @@ class TestLanguageParameterInRoutes:
 
         with auth_as(user_id):
             with patch(
-                "plugins.taro.src.routes._get_taro_services"
+                "plugins.tarot.src.routes._get_tarot_services"
             ) as mock_get_services:
                 mock_service = Mock()
                 mock_service.get_session.return_value = Mock(
@@ -277,7 +277,7 @@ class TestLanguageParameterInRoutes:
                 mock_get_services.return_value = mock_service
 
                 client.post(
-                    f"/api/v1/taro/session/{session_id}/follow-up-question",
+                    f"/api/v1/tarot/session/{session_id}/follow-up-question",
                     json={"question": "Will it improve?", "language": "fr"},
                     headers=_AUTH_HEADER,
                 )
@@ -297,7 +297,7 @@ class TestLanguageParameterInRoutes:
 
         with auth_as(user_id):
             with patch(
-                "plugins.taro.src.routes._get_taro_services"
+                "plugins.tarot.src.routes._get_tarot_services"
             ) as mock_get_services:
                 mock_service = Mock()
                 mock_service.get_session.return_value = Mock(
@@ -307,7 +307,7 @@ class TestLanguageParameterInRoutes:
                 mock_get_services.return_value = mock_service
 
                 client.post(
-                    f"/api/v1/taro/session/{session_id}/follow-up-question",
+                    f"/api/v1/tarot/session/{session_id}/follow-up-question",
                     json={"question": "Test question", "language": lang_code},
                     headers=_AUTH_HEADER,
                 )

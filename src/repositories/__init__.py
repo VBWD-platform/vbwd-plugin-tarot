@@ -1,12 +1,14 @@
-"""Taro plugin repositories."""
-from plugins.taro.src.repositories.arcana_repository import ArcanaRepository
-from plugins.taro.src.repositories.taro_session_repository import TaroSessionRepository
-from plugins.taro.src.repositories.taro_card_draw_repository import (
-    TaroCardDrawRepository,
+"""Tarot plugin repositories."""
+from plugins.tarot.src.repositories.arcana_repository import ArcanaRepository
+from plugins.tarot.src.repositories.tarot_session_repository import (
+    TarotSessionRepository,
+)
+from plugins.tarot.src.repositories.tarot_card_draw_repository import (
+    TarotCardDrawRepository,
 )
 
 __all__ = [
     "ArcanaRepository",
-    "TaroSessionRepository",
-    "TaroCardDrawRepository",
+    "TarotSessionRepository",
+    "TarotCardDrawRepository",
 ]

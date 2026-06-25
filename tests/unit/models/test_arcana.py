@@ -1,7 +1,7 @@
 """Tests for Arcana model."""
 import pytest
-from plugins.taro.src.models.arcana import Arcana
-from plugins.taro.src.enums import ArcanaType
+from plugins.tarot.src.models.arcana import Arcana
+from plugins.tarot.src.enums import ArcanaType
 
 
 class TestArcanaCreation:

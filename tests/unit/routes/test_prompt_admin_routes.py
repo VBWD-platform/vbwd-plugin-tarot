@@ -50,7 +50,7 @@ def prompts_file():
     """Create temporary prompts file for testing."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
         test_prompts = {
-            "_meta": {"version": "1.0", "plugin": "taro"},
+            "_meta": {"version": "1.0", "plugin": "tarot"},
             "_defaults": {"temperature": 0.7, "max_tokens": 2000, "timeout": 30},
             "test_prompt": {"template": "Test: {{value}}", "variables": ["value"]},
         }
@@ -64,98 +64,98 @@ def prompts_file():
 class TestAdminPromptRoutes:
     """Test admin prompt management API endpoints."""
 
-    @patch("plugins.taro.src.routes._get_prompt_service")
+    @patch("plugins.tarot.src.routes._get_prompt_service")
     def test_get_all_prompts_success(self, mock_get_service, client, prompts_file):
         """Should return all prompts with defaults."""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         service = PromptService(prompts_file)
         mock_get_service.return_value = service
 
-        response = client.get("/api/v1/taro/admin/prompts")
+        response = client.get("/api/v1/tarot/admin/prompts")
 
         # Without auth, should return 401
         assert response.status_code == 401
 
-    @patch("plugins.taro.src.routes._get_prompt_service")
+    @patch("plugins.tarot.src.routes._get_prompt_service")
     def test_get_prompt_defaults_success(self, mock_get_service, client, prompts_file):
         """Should return default metadata."""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         service = PromptService(prompts_file)
         mock_get_service.return_value = service
 
-        response = client.get("/api/v1/taro/admin/prompts/defaults")
+        response = client.get("/api/v1/tarot/admin/prompts/defaults")
 
         # Without auth, should return 401
         assert response.status_code == 401
 
-    @patch("plugins.taro.src.routes._get_prompt_service")
+    @patch("plugins.tarot.src.routes._get_prompt_service")
     def test_update_prompt_defaults_success(
         self, mock_get_service, client, prompts_file
     ):
         """Should update default metadata."""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         service = PromptService(prompts_file)
         mock_get_service.return_value = service
 
         response = client.put(
-            "/api/v1/taro/admin/prompts/defaults",
+            "/api/v1/tarot/admin/prompts/defaults",
             json={"temperature": 0.8, "max_tokens": 2500},
         )
 
         # Without auth, should return 401
         assert response.status_code == 401
 
-    @patch("plugins.taro.src.routes._get_prompt_service")
+    @patch("plugins.tarot.src.routes._get_prompt_service")
     def test_get_single_prompt_success(self, mock_get_service, client, prompts_file):
         """Should return single prompt."""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         service = PromptService(prompts_file)
         mock_get_service.return_value = service
 
-        response = client.get("/api/v1/taro/admin/prompts/test_prompt")
+        response = client.get("/api/v1/tarot/admin/prompts/test_prompt")
 
         # Without auth, should return 401
         assert response.status_code == 401
 
-    @patch("plugins.taro.src.routes._get_prompt_service")
+    @patch("plugins.tarot.src.routes._get_prompt_service")
     def test_get_nonexistent_prompt_returns_404(
         self, mock_get_service, client, prompts_file
     ):
         """Should return 404 for nonexistent prompt."""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         service = PromptService(prompts_file)
         mock_get_service.return_value = service
 
-        response = client.get("/api/v1/taro/admin/prompts/nonexistent")
+        response = client.get("/api/v1/tarot/admin/prompts/nonexistent")
 
         # Without auth, should return 401
         assert response.status_code == 401
 
-    @patch("plugins.taro.src.routes._get_prompt_service")
+    @patch("plugins.tarot.src.routes._get_prompt_service")
     def test_update_prompt_success(self, mock_get_service, client, prompts_file):
         """Should update prompt template and metadata."""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         service = PromptService(prompts_file)
         mock_get_service.return_value = service
 
         response = client.put(
-            "/api/v1/taro/admin/prompts/test_prompt",
+            "/api/v1/tarot/admin/prompts/test_prompt",
             json={"template": "Updated: {{value}}", "variables": ["value"]},
         )
 
         # Without auth, should return 401
         assert response.status_code == 401
 
-    @patch("plugins.taro.src.routes._get_prompt_service")
+    @patch("plugins.tarot.src.routes._get_prompt_service")
     def test_reset_prompts_success(self, mock_get_service, client, prompts_file):
         """Should reset prompts to defaults."""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         # Create .dist file
         dist_file = prompts_file.replace(".json", ".json.dist")
@@ -171,7 +171,7 @@ class TestAdminPromptRoutes:
         service = PromptService(prompts_file)
         mock_get_service.return_value = service
 
-        response = client.post("/api/v1/taro/admin/prompts/reset")
+        response = client.post("/api/v1/tarot/admin/prompts/reset")
 
         # Without auth, should return 401
         assert response.status_code == 401
@@ -179,34 +179,34 @@ class TestAdminPromptRoutes:
         # Cleanup
         os.unlink(dist_file)
 
-    @patch("plugins.taro.src.routes._get_prompt_service")
+    @patch("plugins.tarot.src.routes._get_prompt_service")
     def test_validate_prompt_success(self, mock_get_service, client, prompts_file):
         """Should validate prompt template syntax."""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         service = PromptService(prompts_file)
         mock_get_service.return_value = service
 
         response = client.post(
-            "/api/v1/taro/admin/prompts/validate",
+            "/api/v1/tarot/admin/prompts/validate",
             json={"template": "Valid: {{template}}", "variables": ["template"]},
         )
 
         # Without auth, should return 401
         assert response.status_code == 401
 
-    @patch("plugins.taro.src.routes._get_prompt_service")
+    @patch("plugins.tarot.src.routes._get_prompt_service")
     def test_validate_prompt_invalid_syntax(
         self, mock_get_service, client, prompts_file
     ):
         """Should reject invalid template syntax."""
-        from plugins.taro.src.services.prompt_service import PromptService
+        from plugins.tarot.src.services.prompt_service import PromptService
 
         service = PromptService(prompts_file)
         mock_get_service.return_value = service
 
         response = client.post(
-            "/api/v1/taro/admin/prompts/validate",
+            "/api/v1/tarot/admin/prompts/validate",
             json={"template": "Invalid: {{unclosed", "variables": ["unclosed"]},
         )
 

@@ -1,4 +1,4 @@
-"""Routes for Taro plugin - API endpoints."""
+"""Routes for Tarot plugin - API endpoints."""
 import logging
 from flask import Blueprint, request, jsonify, current_app, send_from_directory, g
 from vbwd.utils.datetime_utils import utcnow
@@ -7,22 +7,24 @@ from uuid import UUID
 from vbwd.extensions import db
 from vbwd.middleware.auth import require_auth, require_admin, require_permission
 
-from plugins.taro.src.events import (
-    TaroSessionRequestedEvent,
-    TaroFollowUpRequestedEvent,
+from plugins.tarot.src.events import (
+    TarotSessionRequestedEvent,
+    TarotFollowUpRequestedEvent,
 )
-from plugins.taro.src.services.taro_session_service import TaroSessionService
-from plugins.taro.src.repositories.taro_session_repository import TaroSessionRepository
-from plugins.taro.src.repositories.arcana_repository import ArcanaRepository
-from plugins.taro.src.repositories.taro_card_draw_repository import (
-    TaroCardDrawRepository,
+from plugins.tarot.src.services.tarot_session_service import TarotSessionService
+from plugins.tarot.src.repositories.tarot_session_repository import (
+    TarotSessionRepository,
 )
-from plugins.taro.src.services.prompt_service import PromptService
+from plugins.tarot.src.repositories.arcana_repository import ArcanaRepository
+from plugins.tarot.src.repositories.tarot_card_draw_repository import (
+    TarotCardDrawRepository,
+)
+from plugins.tarot.src.services.prompt_service import PromptService
 
 
 logger = logging.getLogger(__name__)
 
-taro_bp = Blueprint("taro", __name__, url_prefix="/api/v1/taro")
+tarot_bp = Blueprint("tarot", __name__, url_prefix="/api/v1/tarot")
 
 
 # Language code to full language name mapping for LLM prompts
@@ -50,14 +52,14 @@ def get_language_name(language_code: str) -> str:
     return LANGUAGE_NAMES.get(language_code.lower(), "English")
 
 
-def _get_taro_services():
-    """Get Taro service instances with LLM adapter from plugin config."""
+def _get_tarot_services():
+    """Get Tarot service instances with LLM adapter from plugin config."""
     arcana_repo = ArcanaRepository(db.session)
-    session_repo = TaroSessionRepository(db.session)
-    card_draw_repo = TaroCardDrawRepository(db.session)
+    session_repo = TarotSessionRepository(db.session)
+    card_draw_repo = TarotCardDrawRepository(db.session)
 
-    # TaroSessionService initializes LLM adapter from plugin config
-    session_service = TaroSessionService(
+    # TarotSessionService initializes LLM adapter from plugin config
+    session_service = TarotSessionService(
         arcana_repo=arcana_repo,
         session_repo=session_repo,
         card_draw_repo=card_draw_repo,
@@ -81,16 +83,16 @@ def _get_prompt_service() -> PromptService:
     plugin_base_dir = os.path.dirname(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     )
-    prompts_file = os.path.join(plugin_base_dir, "taro-prompts.json")
+    prompts_file = os.path.join(plugin_base_dir, "tarot-prompts.json")
 
     return PromptService(prompts_file)
 
 
 def get_user_tarif_plan_limits(user_id: str) -> tuple:
-    """Get user's daily Taro limits from their tarif plan.
+    """Get user's daily Tarot limits from their tarif plan.
 
     Reads the tarif plan features configuration to determine:
-    - daily_taro_limit: Max taro sessions per day
+    - daily_tarot_limit: Max tarot sessions per day
     - max_follow_ups: Max follow-up questions per session
 
     Args:
@@ -115,10 +117,10 @@ def get_user_tarif_plan_limits(user_id: str) -> tuple:
         # with the str form (e.g. from a JWT identity), so normalise first.
         uid = user_id if isinstance(user_id, UUID) else UUID(user_id)
         daily_limit = entitlement.get_feature_value(
-            uid, "daily_taro_limit", DEFAULT_DAILY_LIMIT
+            uid, "daily_tarot_limit", DEFAULT_DAILY_LIMIT
         )
         max_follow_ups = entitlement.get_feature_value(
-            uid, "max_taro_follow_ups", DEFAULT_MAX_FOLLOW_UPS
+            uid, "max_tarot_follow_ups", DEFAULT_MAX_FOLLOW_UPS
         )
 
         return int(daily_limit), int(max_follow_ups)
@@ -157,17 +159,17 @@ def check_token_balance(user_id: str, tokens_required: int = 10) -> bool:
     return user_balance >= tokens_required
 
 
-@taro_bp.route("/session", methods=["POST"])
+@tarot_bp.route("/session", methods=["POST"])
 @require_auth
 def create_session():
-    """Create a new Taro reading session.
+    """Create a new Tarot reading session.
 
     Returns:
         JSON response with session_id and initial 3-card spread
     """
     try:
         user_id = g.user_id
-        session_service = _get_taro_services()
+        session_service = _get_tarot_services()
 
         # Get daily limit and max follow-ups from user's tarif plan
         daily_limit, max_follow_ups = get_user_tarif_plan_limits(user_id)
@@ -199,7 +201,7 @@ def create_session():
             )
 
         # Emit event for session creation
-        event = TaroSessionRequestedEvent(
+        event = TarotSessionRequestedEvent(
             user_id=user_id,
             requested_at=utcnow(),
             daily_limit=daily_limit,
@@ -232,7 +234,7 @@ def create_session():
             jsonify(
                 {
                     "success": True,
-                    "message": "Taro session created successfully",
+                    "message": "Tarot session created successfully",
                     "session": {
                         "session_id": str(session.id),
                         "user_id": str(session.user_id),
@@ -289,7 +291,7 @@ def create_session():
         )
 
 
-@taro_bp.route("/session/<session_id>/follow-up", methods=["POST"])
+@tarot_bp.route("/session/<session_id>/follow-up", methods=["POST"])
 @require_auth
 def create_follow_up(session_id: str):
     """Create a follow-up question for an active session.
@@ -332,7 +334,7 @@ def create_follow_up(session_id: str):
                 400,
             )
 
-        session_service = _get_taro_services()
+        session_service = _get_tarot_services()
 
         # Get session
         session = session_service.get_session(session_id)
@@ -411,7 +413,7 @@ def create_follow_up(session_id: str):
             )
 
         # Emit follow-up event
-        event = TaroFollowUpRequestedEvent(
+        event = TarotFollowUpRequestedEvent(
             session_id=session_id,
             user_id=user_id,
             question=question,
@@ -450,7 +452,7 @@ def create_follow_up(session_id: str):
         )
 
 
-@taro_bp.route("/session/<session_id>/follow-up-question", methods=["POST"])
+@tarot_bp.route("/session/<session_id>/follow-up-question", methods=["POST"])
 @require_auth
 def ask_follow_up_question(session_id: str):
     """Ask a follow-up question about the Tarot reading.
@@ -486,7 +488,7 @@ def ask_follow_up_question(session_id: str):
                 400,
             )
 
-        session_service = _get_taro_services()
+        session_service = _get_tarot_services()
 
         # Get session
         session = session_service.get_session(session_id)
@@ -564,7 +566,7 @@ def ask_follow_up_question(session_id: str):
         )
 
 
-@taro_bp.route("/session/<session_id>/card-explanation", methods=["POST"])
+@tarot_bp.route("/session/<session_id>/card-explanation", methods=["POST"])
 @require_auth
 def get_card_explanation(session_id: str):
     """Get detailed explanation of the 3 cards in the spread.
@@ -584,7 +586,7 @@ def get_card_explanation(session_id: str):
         user_id = g.user_id
         data = request.get_json() or {}
         language = data.get("language", "en").lower()
-        session_service = _get_taro_services()
+        session_service = _get_tarot_services()
 
         # Get session
         session = session_service.get_session(session_id)
@@ -726,7 +728,7 @@ def get_card_explanation(session_id: str):
         )
 
 
-@taro_bp.route("/session/<session_id>/situation", methods=["POST"])
+@tarot_bp.route("/session/<session_id>/situation", methods=["POST"])
 @require_auth
 def submit_situation(session_id: str):
     """Submit user's situation and get contextual Oracle reading.
@@ -775,7 +777,7 @@ def submit_situation(session_id: str):
                 400,
             )
 
-        session_service = _get_taro_services()
+        session_service = _get_tarot_services()
 
         # Get session
         session = session_service.get_session(session_id)
@@ -853,10 +855,10 @@ def submit_situation(session_id: str):
         )
 
 
-@taro_bp.route("/history", methods=["GET"])
+@tarot_bp.route("/history", methods=["GET"])
 @require_auth
 def get_session_history():
-    """Get user's Taro session history.
+    """Get user's Tarot session history.
 
     Query parameters:
         limit: Number of sessions to return (default 10)
@@ -878,7 +880,7 @@ def get_session_history():
         limit = min(limit, 100)  # Max 100 items per request
         limit = max(limit, 1)
 
-        session_service = _get_taro_services()
+        session_service = _get_tarot_services()
 
         # Get sessions
         sessions = session_service.get_user_sessions(
@@ -950,10 +952,10 @@ def get_session_history():
         )
 
 
-@taro_bp.route("/limits", methods=["GET"])
+@tarot_bp.route("/limits", methods=["GET"])
 @require_auth
 def get_daily_limits():
-    """Get user's daily Taro limits and current usage.
+    """Get user's daily Tarot limits and current usage.
 
     Returns:
         JSON response with daily limits and remaining sessions
@@ -971,7 +973,7 @@ def get_daily_limits():
             resolve_entitlement_provider().current_plan_name(user_id) or "Unknown"
         )
 
-        session_service = _get_taro_services()
+        session_service = _get_tarot_services()
 
         # Check daily limit
         allowed, remaining = session_service.check_daily_limit(user_id, daily_limit)
@@ -1022,7 +1024,7 @@ def get_daily_limits():
         )
 
 
-@taro_bp.route("/assets/arcana/<path:filename>", methods=["GET"])
+@tarot_bp.route("/assets/arcana/<path:filename>", methods=["GET"])
 def serve_arcana_assets(filename):
     """Serve tarot card SVG assets from the plugin directory."""
     try:
@@ -1050,19 +1052,19 @@ def serve_arcana_assets(filename):
 
 
 # ============================================================================
-# ADMIN ENDPOINTS - Taro Admin Utilities
+# ADMIN ENDPOINTS - Tarot Admin Utilities
 # ============================================================================
 
 
-@taro_bp.route("/admin/users/<user_id>/sessions", methods=["GET"])
+@tarot_bp.route("/admin/users/<user_id>/sessions", methods=["GET"])
 @require_auth
 @require_admin
-@require_permission("taro.products.view")
+@require_permission("tarot.products.view")
 def admin_get_user_sessions(user_id):
-    """Get user's Taro session info (admin utility).
+    """Get user's Tarot session info (admin utility).
 
     Returns current session count and limits for the specified user.
-    Used by admins to view user's taro session status.
+    Used by admins to view user's tarot session status.
 
     Args:
         user_id: UUID of the user
@@ -1086,8 +1088,8 @@ def admin_get_user_sessions(user_id):
         if not user:
             return jsonify({"error": "User not found"}), 404
 
-        # Get taro service
-        session_service = _get_taro_services()
+        # Get tarot service
+        session_service = _get_tarot_services()
 
         # Get session info from user's tarif plan
         daily_limit, _ = get_user_tarif_plan_limits(str(user_id))
@@ -1122,12 +1124,12 @@ def admin_get_user_sessions(user_id):
         )
 
 
-@taro_bp.route("/admin/users/<user_id>/reset-sessions", methods=["POST"])
+@tarot_bp.route("/admin/users/<user_id>/reset-sessions", methods=["POST"])
 @require_auth
 @require_admin
-@require_permission("taro.products.manage")
+@require_permission("tarot.products.manage")
 def admin_reset_user_sessions(user_id):
-    """Reset user's daily Taro sessions (admin utility).
+    """Reset user's daily Tarot sessions (admin utility).
 
     Closes all active sessions created today for the specified user.
     Used by admins to allow users to create new sessions after reaching their limit.
@@ -1154,8 +1156,8 @@ def admin_reset_user_sessions(user_id):
         if not user:
             return jsonify({"error": "User not found"}), 404
 
-        # Get taro service
-        session_service = _get_taro_services()
+        # Get tarot service
+        session_service = _get_tarot_services()
 
         # Reset sessions
         reset_count = session_service.reset_today_sessions(str(user_id))
@@ -1170,7 +1172,7 @@ def admin_reset_user_sessions(user_id):
             jsonify(
                 {
                     "success": True,
-                    "message": f"Reset {reset_count} Taro sessions for {user.email}",
+                    "message": f"Reset {reset_count} Tarot sessions for {user.email}",
                     "user_id": str(user.id),
                     "email": user.email,
                     "reset_count": reset_count,
@@ -1200,10 +1202,10 @@ def admin_reset_user_sessions(user_id):
 # ============================================================================
 
 
-@taro_bp.route("/admin/prompts", methods=["GET"])
+@tarot_bp.route("/admin/prompts", methods=["GET"])
 @require_auth
 @require_admin
-@require_permission("taro.products.view")
+@require_permission("tarot.products.view")
 def get_all_prompts():
     """Get all prompts with resolved metadata.
 
@@ -1234,10 +1236,10 @@ def get_all_prompts():
         return (jsonify({"success": False, "error": str(e)}), 500)
 
 
-@taro_bp.route("/admin/prompts/defaults", methods=["GET"])
+@tarot_bp.route("/admin/prompts/defaults", methods=["GET"])
 @require_auth
 @require_admin
-@require_permission("taro.products.view")
+@require_permission("tarot.products.view")
 def get_prompt_defaults():
     """Get default metadata.
 
@@ -1252,10 +1254,10 @@ def get_prompt_defaults():
         return (jsonify({"success": False, "error": str(e)}), 500)
 
 
-@taro_bp.route("/admin/prompts/defaults", methods=["PUT"])
+@tarot_bp.route("/admin/prompts/defaults", methods=["PUT"])
 @require_auth
 @require_admin
-@require_permission("taro.products.manage")
+@require_permission("tarot.products.manage")
 def update_prompt_defaults():
     """Update default metadata.
 
@@ -1278,10 +1280,10 @@ def update_prompt_defaults():
         return (jsonify({"success": False, "error": str(e)}), 400)
 
 
-@taro_bp.route("/admin/prompts/<slug>", methods=["GET"])
+@tarot_bp.route("/admin/prompts/<slug>", methods=["GET"])
 @require_auth
 @require_admin
-@require_permission("taro.products.view")
+@require_permission("tarot.products.view")
 def get_prompt(slug):
     """Get single prompt with resolved metadata.
 
@@ -1303,10 +1305,10 @@ def get_prompt(slug):
         return (jsonify({"success": False, "error": str(e)}), 500)
 
 
-@taro_bp.route("/admin/prompts/<slug>", methods=["PUT"])
+@tarot_bp.route("/admin/prompts/<slug>", methods=["PUT"])
 @require_auth
 @require_admin
-@require_permission("taro.products.manage")
+@require_permission("tarot.products.manage")
 def update_prompt(slug):
     """Update a prompt (template + optional metadata overrides).
 
@@ -1348,10 +1350,10 @@ def update_prompt(slug):
         return (jsonify({"success": False, "error": str(e)}), 500)
 
 
-@taro_bp.route("/admin/prompts/reset", methods=["POST"])
+@tarot_bp.route("/admin/prompts/reset", methods=["POST"])
 @require_auth
 @require_admin
-@require_permission("taro.products.manage")
+@require_permission("tarot.products.manage")
 def reset_prompts():
     """Reset all prompts to distribution defaults.
 
@@ -1368,10 +1370,10 @@ def reset_prompts():
         return (jsonify({"success": False, "error": str(e)}), 400)
 
 
-@taro_bp.route("/admin/prompts/validate", methods=["POST"])
+@tarot_bp.route("/admin/prompts/validate", methods=["POST"])
 @require_auth
 @require_admin
-@require_permission("taro.products.manage")
+@require_permission("tarot.products.manage")
 def validate_prompt():
     """Validate prompt template syntax.
 

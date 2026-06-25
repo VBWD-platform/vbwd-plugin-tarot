@@ -1,22 +1,22 @@
-"""Tests for TaroSession model."""
+"""Tests for TarotSession model."""
 import pytest
 from datetime import datetime, timedelta
 from uuid import uuid4
-from plugins.taro.src.models.taro_session import TaroSession
-from plugins.taro.src.enums import TaroSessionStatus
+from plugins.tarot.src.models.tarot_session import TarotSession
+from plugins.tarot.src.enums import TarotSessionStatus
 
 
-class TestTaroSessionCreation:
-    """Test TaroSession model creation and validation."""
+class TestTarotSessionCreation:
+    """Test TarotSession model creation and validation."""
 
-    def test_taro_session_creation(self, db):
-        """Test creating a TaroSession with all fields."""
+    def test_tarot_session_creation(self, db):
+        """Test creating a TarotSession with all fields."""
         user_id = str(uuid4())
         expires_at = datetime.utcnow() + timedelta(minutes=30)
 
-        session = TaroSession(
+        session = TarotSession(
             user_id=user_id,
-            status=TaroSessionStatus.ACTIVE.value,
+            status=TarotSessionStatus.ACTIVE.value,
             spread_id="spread-001",
             expires_at=expires_at,
             tokens_consumed=10,
@@ -25,7 +25,7 @@ class TestTaroSessionCreation:
         )
 
         assert session.user_id == user_id
-        assert session.status == TaroSessionStatus.ACTIVE.value
+        assert session.status == TarotSessionStatus.ACTIVE.value
         assert session.spread_id == "spread-001"
         assert session.expires_at == expires_at
         assert session.tokens_consumed == 10
@@ -33,15 +33,15 @@ class TestTaroSessionCreation:
         assert session.max_follow_ups == 3
         assert session.ended_at is None
 
-    def test_taro_session_requires_user_id(self, db):
-        """Test that TaroSession requires a user_id at database level."""
+    def test_tarot_session_requires_user_id(self, db):
+        """Test that TarotSession requires a user_id at database level."""
         from sqlalchemy.exc import IntegrityError
 
         expires_at = datetime.utcnow() + timedelta(minutes=30)
 
         # SQLAlchemy doesn't raise TypeError on instantiation, but on commit
-        session = TaroSession(
-            status=TaroSessionStatus.ACTIVE.value,
+        session = TarotSession(
+            status=TarotSessionStatus.ACTIVE.value,
             spread_id="spread-001",
             expires_at=expires_at,
             tokens_consumed=10,
@@ -52,9 +52,9 @@ class TestTaroSessionCreation:
             db.session.commit()
         db.session.rollback()
 
-    def test_taro_session_default_status_is_active(self, db):
+    def test_tarot_session_default_status_is_active(self, db):
         """Test that default status is ACTIVE."""
-        session = TaroSession(
+        session = TarotSession(
             user_id=str(uuid4()),
             spread_id="spread-001",
             expires_at=datetime.utcnow() + timedelta(minutes=30),
@@ -63,11 +63,11 @@ class TestTaroSessionCreation:
         db.session.commit()
 
         # After persisting, default status should be ACTIVE
-        assert session.status == TaroSessionStatus.ACTIVE.value
+        assert session.status == TarotSessionStatus.ACTIVE.value
 
-    def test_taro_session_status_transitions(self, db):
+    def test_tarot_session_status_transitions(self, db):
         """Test session status transitions."""
-        session = TaroSession(
+        session = TarotSession(
             user_id=str(uuid4()),
             spread_id="spread-001",
             expires_at=datetime.utcnow() + timedelta(minutes=30),
@@ -76,22 +76,22 @@ class TestTaroSessionCreation:
         db.session.commit()
 
         # Start as ACTIVE (set by default at database level)
-        assert session.status == TaroSessionStatus.ACTIVE.value
+        assert session.status == TarotSessionStatus.ACTIVE.value
 
         # Can be changed to EXPIRED
-        session.status = TaroSessionStatus.EXPIRED.value
-        assert session.status == TaroSessionStatus.EXPIRED.value
+        session.status = TarotSessionStatus.EXPIRED.value
+        assert session.status == TarotSessionStatus.EXPIRED.value
 
         # Can be changed to CLOSED
-        session.status = TaroSessionStatus.CLOSED.value
-        assert session.status == TaroSessionStatus.CLOSED.value
+        session.status = TarotSessionStatus.CLOSED.value
+        assert session.status == TarotSessionStatus.CLOSED.value
 
-    def test_taro_session_expiry_calculation(self):
+    def test_tarot_session_expiry_calculation(self):
         """Test that expiry is 30 minutes from now."""
         now = datetime.utcnow()
         expires_at = now + timedelta(minutes=30)
 
-        session = TaroSession(
+        session = TarotSession(
             user_id=str(uuid4()), spread_id="spread-001", expires_at=expires_at
         )
 
@@ -99,9 +99,9 @@ class TestTaroSessionCreation:
         diff = (session.expires_at - now).total_seconds()
         assert 29 * 60 <= diff <= 31 * 60  # Allow 1 minute variance
 
-    def test_taro_session_token_consumption_tracking(self):
+    def test_tarot_session_token_consumption_tracking(self):
         """Test tracking tokens consumed."""
-        session = TaroSession(
+        session = TarotSession(
             user_id=str(uuid4()),
             spread_id="spread-001",
             expires_at=datetime.utcnow() + timedelta(minutes=30),
@@ -114,9 +114,9 @@ class TestTaroSessionCreation:
         session.tokens_consumed = 25
         assert session.tokens_consumed == 25
 
-    def test_taro_session_follow_up_count(self):
+    def test_tarot_session_follow_up_count(self):
         """Test tracking follow-up questions."""
-        session = TaroSession(
+        session = TarotSession(
             user_id=str(uuid4()),
             spread_id="spread-001",
             expires_at=datetime.utcnow() + timedelta(minutes=30),
@@ -131,10 +131,10 @@ class TestTaroSessionCreation:
         session.follow_up_count = 1
         assert session.follow_up_count == 1
 
-    def test_taro_session_max_follow_ups_from_addon(self):
+    def test_tarot_session_max_follow_ups_from_addon(self):
         """Test that max_follow_ups can be set per plan."""
         # Basic plan: 0 follow-ups (only initial spread)
-        session_basic = TaroSession(
+        session_basic = TarotSession(
             user_id=str(uuid4()),
             spread_id="spread-001",
             expires_at=datetime.utcnow() + timedelta(minutes=30),
@@ -143,7 +143,7 @@ class TestTaroSessionCreation:
         assert session_basic.max_follow_ups == 0
 
         # Star plan: 3 follow-ups
-        session_star = TaroSession(
+        session_star = TarotSession(
             user_id=str(uuid4()),
             spread_id="spread-002",
             expires_at=datetime.utcnow() + timedelta(minutes=30),
@@ -152,7 +152,7 @@ class TestTaroSessionCreation:
         assert session_star.max_follow_ups == 3
 
         # Guru plan: unlimited (represented as 12)
-        session_guru = TaroSession(
+        session_guru = TarotSession(
             user_id="user-789",
             spread_id="spread-003",
             expires_at=datetime.utcnow() + timedelta(minutes=30),
@@ -160,9 +160,9 @@ class TestTaroSessionCreation:
         )
         assert session_guru.max_follow_ups == 12
 
-    def test_taro_session_ended_at_nullable(self):
+    def test_tarot_session_ended_at_nullable(self):
         """Test that ended_at is nullable until session ends."""
-        session = TaroSession(
+        session = TarotSession(
             user_id=str(uuid4()),
             spread_id="spread-001",
             expires_at=datetime.utcnow() + timedelta(minutes=30),
@@ -171,13 +171,13 @@ class TestTaroSessionCreation:
         assert session.ended_at is None
 
         # Can be set when closed
-        session.status = TaroSessionStatus.CLOSED
+        session.status = TarotSessionStatus.CLOSED
         session.ended_at = datetime.utcnow()
         assert session.ended_at is not None
 
-    def test_taro_session_timestamps(self, db):
+    def test_tarot_session_timestamps(self, db):
         """Test that created_at and updated_at are set."""
-        session = TaroSession(
+        session = TarotSession(
             user_id=str(uuid4()),
             spread_id="spread-001",
             expires_at=datetime.utcnow() + timedelta(minutes=30),
@@ -188,9 +188,9 @@ class TestTaroSessionCreation:
         assert session.created_at is not None
         assert session.updated_at is not None
 
-    def test_taro_session_started_at(self, db):
+    def test_tarot_session_started_at(self, db):
         """Test that started_at is set."""
-        session = TaroSession(
+        session = TarotSession(
             user_id=str(uuid4()),
             spread_id="spread-001",
             expires_at=datetime.utcnow() + timedelta(minutes=30),
@@ -200,11 +200,11 @@ class TestTaroSessionCreation:
 
         assert session.started_at is not None
 
-    def test_taro_session_to_dict(self, db):
-        """Test TaroSession.to_dict() method."""
+    def test_tarot_session_to_dict(self, db):
+        """Test TarotSession.to_dict() method."""
         user_id = str(uuid4())
         expires_at = datetime.utcnow() + timedelta(minutes=30)
-        session = TaroSession(
+        session = TarotSession(
             user_id=user_id,
             spread_id="spread-001",
             expires_at=expires_at,
@@ -219,16 +219,16 @@ class TestTaroSessionCreation:
 
         assert result["user_id"] == user_id
         assert result["spread_id"] == "spread-001"
-        assert result["status"] == TaroSessionStatus.ACTIVE.value
+        assert result["status"] == TarotSessionStatus.ACTIVE.value
         assert result["tokens_consumed"] == 15
         assert result["follow_up_count"] == 1
         assert result["max_follow_ups"] == 3
 
-    def test_taro_session_id_is_uuid(self, db):
-        """Test that TaroSession gets a UUID id on creation."""
+    def test_tarot_session_id_is_uuid(self, db):
+        """Test that TarotSession gets a UUID id on creation."""
         from uuid import UUID
 
-        session = TaroSession(
+        session = TarotSession(
             user_id=str(uuid4()),
             spread_id="spread-001",
             expires_at=datetime.utcnow() + timedelta(minutes=30),

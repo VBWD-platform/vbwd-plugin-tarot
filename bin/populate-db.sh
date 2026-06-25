@@ -5,7 +5,7 @@
 # Runs the populate_arcanas.py script inside the backend API container via docker compose.
 #
 # Usage:
-#   ./plugins/taro/bin/populate-db.sh           # Populate all arcana cards
+#   ./plugins/tarot/bin/populate-db.sh           # Populate all arcana cards
 #
 # Requirements:
 #   - docker compose running with api service
@@ -50,8 +50,8 @@ echo -e "${YELLOW}[1/1] Populating arcana table with 78 tarot cards...${NC}"
 echo ""
 
 # Run the populate_arcanas.py script inside the api container
-# The script is located at /app/plugins/taro/src/bin/populate_arcanas.py inside the container
-docker compose exec -T api python /app/plugins/taro/src/bin/populate_arcanas.py
+# The script is located at /app/plugins/tarot/src/bin/populate_arcanas.py inside the container
+docker compose exec -T api python /app/plugins/tarot/src/bin/populate_arcanas.py
 
 if [ $? -eq 0 ]; then
     echo ""
@@ -68,7 +68,7 @@ if [ $? -eq 0 ]; then
     echo ""
     echo "Asset locations:"
     echo "  Backend: $SCRIPT_DIR/assets/arcana/"
-    echo "  Frontend: $PROJECT_ROOT/vbwd-frontend/user/plugins/taro/assets/arcana/"
+    echo "  Frontend: $PROJECT_ROOT/vbwd-frontend/user/plugins/tarot/assets/arcana/"
     echo ""
     exit 0
 else

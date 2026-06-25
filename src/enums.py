@@ -1,4 +1,4 @@
-"""Enumeration types for Taro plugin."""
+"""Enumeration types for Tarot plugin."""
 import enum
 
 
@@ -27,8 +27,8 @@ class CardPosition(enum.Enum):
     FUTURE = "FUTURE"
 
 
-class TaroSessionStatus(enum.Enum):
-    """Taro session status."""
+class TarotSessionStatus(enum.Enum):
+    """Tarot session status."""
 
     ACTIVE = "ACTIVE"
     EXPIRED = "EXPIRED"

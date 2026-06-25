@@ -1,8 +1,8 @@
-"""Alembic environment for taro plugin migrations.
+"""Alembic environment for tarot plugin migrations.
 
 Usage:
     cd vbwd-backend
-    alembic -c plugins/taro/migrations/alembic.ini upgrade head
+    alembic -c plugins/tarot/migrations/alembic.ini upgrade head
 """
 from logging.config import fileConfig
 import sys
@@ -22,11 +22,11 @@ sys.path.insert(0, vbwd_backend_root)
 from vbwd.config import get_database_url  # noqa: E402
 from vbwd.extensions import db  # noqa: E402
 
-# Import all Taro models so Alembic can detect them
-from plugins.taro.src.models import (  # noqa: F401, E402
+# Import all Tarot models so Alembic can detect them
+from plugins.tarot.src.models import (  # noqa: F401, E402
     Arcana,
-    TaroSession,
-    TaroCardDraw,
+    TarotSession,
+    TarotCardDraw,
 )
 
 # this is the Alembic Config object

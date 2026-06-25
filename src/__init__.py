@@ -1,1 +1,1 @@
-"""Taro plugin source code."""
+"""Tarot plugin source code."""

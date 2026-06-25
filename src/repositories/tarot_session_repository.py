@@ -1,12 +1,12 @@
-"""Repository for TaroSession data access."""
+"""Repository for TarotSession data access."""
 from typing import Optional, List
 from datetime import datetime
-from plugins.taro.src.models.taro_session import TaroSession
-from plugins.taro.src.enums import TaroSessionStatus
+from plugins.tarot.src.models.tarot_session import TarotSession
+from plugins.tarot.src.enums import TarotSessionStatus
 
 
-class TaroSessionRepository:
-    """Repository for TaroSession model database operations."""
+class TarotSessionRepository:
+    """Repository for TarotSession model database operations."""
 
     def __init__(self, session):
         """Initialize repository with database session.
@@ -16,70 +16,74 @@ class TaroSessionRepository:
         """
         self.session = session
 
-    def create(self, **kwargs) -> TaroSession:
-        """Create new TaroSession."""
-        session = TaroSession(**kwargs)
+    def create(self, **kwargs) -> TarotSession:
+        """Create new TarotSession."""
+        session = TarotSession(**kwargs)
         self.session.add(session)
         self.session.commit()
         return session
 
-    def get_by_id(self, session_id: str) -> Optional[TaroSession]:
-        """Get TaroSession by ID."""
+    def get_by_id(self, session_id: str) -> Optional[TarotSession]:
+        """Get TarotSession by ID."""
         return (
-            self.session.query(TaroSession).filter(TaroSession.id == session_id).first()
+            self.session.query(TarotSession)
+            .filter(TarotSession.id == session_id)
+            .first()
         )
 
-    def get_user_sessions(self, user_id: str) -> List[TaroSession]:
+    def get_user_sessions(self, user_id: str) -> List[TarotSession]:
         """Get all sessions for a user, ordered by created_at descending."""
         return (
-            self.session.query(TaroSession)
-            .filter(TaroSession.user_id == user_id)
-            .order_by(TaroSession.created_at.desc())
+            self.session.query(TarotSession)
+            .filter(TarotSession.user_id == user_id)
+            .order_by(TarotSession.created_at.desc())
             .all()
         )
 
-    def get_active_session(self, user_id: str) -> Optional[TaroSession]:
+    def get_active_session(self, user_id: str) -> Optional[TarotSession]:
         """Get current ACTIVE session for user. Only one active session per user."""
         return (
-            self.session.query(TaroSession)
+            self.session.query(TarotSession)
             .filter(
-                TaroSession.user_id == user_id,
-                TaroSession.status == TaroSessionStatus.ACTIVE.value,
+                TarotSession.user_id == user_id,
+                TarotSession.status == TarotSessionStatus.ACTIVE.value,
             )
             .first()
         )
 
-    def get_sessions_by_status(self, status: TaroSessionStatus) -> List[TaroSession]:
+    def get_sessions_by_status(self, status: TarotSessionStatus) -> List[TarotSession]:
         """Get all sessions with specific status."""
         return (
-            self.session.query(TaroSession)
-            .filter(TaroSession.status == status.value)
-            .order_by(TaroSession.created_at.desc())
+            self.session.query(TarotSession)
+            .filter(TarotSession.status == status.value)
+            .order_by(TarotSession.created_at.desc())
             .all()
         )
 
     def get_expired_sessions(
         self,
         before: datetime,
-        status_only: Optional[TaroSessionStatus] = None,
-    ) -> List[TaroSession]:
+        status_only: Optional[TarotSessionStatus] = None,
+    ) -> List[TarotSession]:
         """Get sessions expired before given datetime.
 
         Args:
             before: Only return sessions with expires_at < this datetime
             status_only: If provided, only return sessions with this status
         """
-        query = self.session.query(TaroSession).filter(TaroSession.expires_at < before)
+        query = self.session.query(TarotSession).filter(
+            TarotSession.expires_at < before
+        )
 
         if status_only:
-            query = query.filter(TaroSession.status == status_only.value)
+            query = query.filter(TarotSession.status == status_only.value)
 
-        return query.order_by(TaroSession.expires_at.desc()).all()
+        return query.order_by(TarotSession.expires_at.desc()).all()
 
     def update_status(
         self,
         session_id: str,
-        status: TaroSessionStatus,
+        status: TarotSessionStatus,
         ended_at: Optional[datetime] = None,
     ) -> bool:
         """Update session status. Returns True if updated, False if not found."""
@@ -97,24 +101,24 @@ class TaroSessionRepository:
     def count_user_sessions(self, user_id: str) -> int:
         """Count total sessions for user."""
         return (
-            self.session.query(TaroSession)
-            .filter(TaroSession.user_id == user_id)
+            self.session.query(TarotSession)
+            .filter(TarotSession.user_id == user_id)
             .count()
         )
 
     def count_active_sessions(self, user_id: str) -> int:
         """Count active sessions for user. Should typically be 0 or 1."""
         return (
-            self.session.query(TaroSession)
+            self.session.query(TarotSession)
             .filter(
-                TaroSession.user_id == user_id,
-                TaroSession.status == TaroSessionStatus.ACTIVE.value,
+                TarotSession.user_id == user_id,
+                TarotSession.status == TarotSessionStatus.ACTIVE.value,
             )
             .count()
         )
 
     def delete(self, session_id: str) -> bool:
-        """Delete TaroSession and cascade to TaroCardDraw. Returns True if deleted."""
+        """Delete TarotSession and cascade to TarotCardDraw. Returns True if deleted."""
         session = self.get_by_id(session_id)
         if session:
             self.session.delete(session)

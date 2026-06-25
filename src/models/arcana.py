@@ -1,7 +1,7 @@
 """Arcana domain model - Tarot card representation."""
 from vbwd.extensions import db
 from vbwd.models.base import BaseModel
-from plugins.taro.src.enums import ArcanaType
+from plugins.tarot.src.enums import ArcanaType
 
 
 class Arcana(BaseModel):
@@ -19,7 +19,7 @@ class Arcana(BaseModel):
     - Image URL: For display in UI
     """
 
-    __tablename__ = "taro_arcana"
+    __tablename__ = "tarot_arcana"
 
     # Card identity
     number = db.Column(db.Integer, nullable=True, index=True)  # 0-21 for Major Arcana

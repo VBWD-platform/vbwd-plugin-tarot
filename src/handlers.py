@@ -1,33 +1,33 @@
-"""Event handlers for Taro plugin - orchestrate business logic."""
+"""Event handlers for Tarot plugin - orchestrate business logic."""
 import logging
 from typing import Optional
 from vbwd.extensions import db
-from plugins.taro.src.events import (
-    TaroSessionCreatedEvent,
-    TaroFollowUpRequestedEvent,
-    TaroInterpretationGeneratedEvent,
-    TaroFollowUpGeneratedEvent,
+from plugins.tarot.src.events import (
+    TarotSessionCreatedEvent,
+    TarotFollowUpRequestedEvent,
+    TarotInterpretationGeneratedEvent,
+    TarotFollowUpGeneratedEvent,
 )
-from plugins.taro.src.models.arcana import Arcana
-from plugins.taro.src.services.taro_session_service import TaroSessionService
-from plugins.taro.src.services.arcana_interpretation_service import (
+from plugins.tarot.src.models.arcana import Arcana
+from plugins.tarot.src.services.tarot_session_service import TarotSessionService
+from plugins.tarot.src.services.arcana_interpretation_service import (
     ArcanaInterpretationService,
 )
-from plugins.taro.src.repositories.taro_card_draw_repository import (
-    TaroCardDrawRepository,
+from plugins.tarot.src.repositories.tarot_card_draw_repository import (
+    TarotCardDrawRepository,
 )
 
 logger = logging.getLogger(__name__)
 
 
-class TaroSessionCreatedHandler:
-    """Handler for TaroSessionCreatedEvent - generates interpretations and deducts tokens."""
+class TarotSessionCreatedHandler:
+    """Handler for TarotSessionCreatedEvent - generates interpretations and deducts tokens."""
 
     def __init__(
         self,
         interpreter_service: ArcanaInterpretationService,
         token_service,  # Token service for deducting tokens
-        card_draw_repo: TaroCardDrawRepository,
+        card_draw_repo: TarotCardDrawRepository,
     ):
         """Initialize handler with dependencies."""
         self.interpreter_service = interpreter_service
@@ -35,20 +35,20 @@ class TaroSessionCreatedHandler:
         self.card_draw_repo = card_draw_repo
 
     def handle(
-        self, event: TaroSessionCreatedEvent
-    ) -> Optional[TaroInterpretationGeneratedEvent]:
-        """Handle TaroSessionCreatedEvent.
+        self, event: TarotSessionCreatedEvent
+    ) -> Optional[TarotInterpretationGeneratedEvent]:
+        """Handle TarotSessionCreatedEvent.
 
         1. Generate LLM interpretations for each card
         2. Update cards with interpretations
         3. Deduct tokens from user
-        4. Emit TaroInterpretationGeneratedEvent
+        4. Emit TarotInterpretationGeneratedEvent
 
         Args:
-            event: TaroSessionCreatedEvent
+            event: TarotSessionCreatedEvent
 
         Returns:
-            TaroInterpretationGeneratedEvent if successful
+            TarotInterpretationGeneratedEvent if successful
         """
         try:
             assert event.session_id is not None
@@ -88,7 +88,7 @@ class TaroSessionCreatedHandler:
             token_success = self.token_service.deduct_tokens(
                 user_id=event.user_id,
                 tokens=total_tokens,
-                reason="taro_session",
+                reason="tarot_session",
                 reference_id=event.session_id,
             )
 
@@ -97,7 +97,7 @@ class TaroSessionCreatedHandler:
                 logger.warning("Failed to deduct tokens for user %s", event.user_id)
 
             # Emit interpretation generated event
-            return TaroInterpretationGeneratedEvent(
+            return TarotInterpretationGeneratedEvent(
                 card_ids=interpreted_card_ids,
                 session_id=event.session_id,
                 tokens_used=total_tokens,
@@ -109,13 +109,13 @@ class TaroSessionCreatedHandler:
             return None
 
 
-class TaroFollowUpHandler:
-    """Handler for TaroFollowUpRequestedEvent - generates follow-up interpretation and deducts tokens."""
+class TarotFollowUpHandler:
+    """Handler for TarotFollowUpRequestedEvent - generates follow-up interpretation and deducts tokens."""
 
     def __init__(
         self,
         interpreter_service: ArcanaInterpretationService,
-        session_service: TaroSessionService,
+        session_service: TarotSessionService,
         token_service,  # Token service for deducting tokens
     ):
         """Initialize handler with dependencies."""
@@ -124,9 +124,9 @@ class TaroFollowUpHandler:
         self.token_service = token_service
 
     def handle(
-        self, event: TaroFollowUpRequestedEvent
-    ) -> Optional[TaroFollowUpGeneratedEvent]:
-        """Handle TaroFollowUpRequestedEvent.
+        self, event: TarotFollowUpRequestedEvent
+    ) -> Optional[TarotFollowUpGeneratedEvent]:
+        """Handle TarotFollowUpRequestedEvent.
 
         1. Validate session exists and is active
         2. Check follow-up count not exceeded
@@ -134,13 +134,13 @@ class TaroFollowUpHandler:
         4. Create new cards if needed (ADDITIONAL, NEW_SPREAD)
         5. Deduct tokens from user
         6. Increment follow-up count
-        7. Emit TaroFollowUpGeneratedEvent
+        7. Emit TarotFollowUpGeneratedEvent
 
         Args:
-            event: TaroFollowUpRequestedEvent
+            event: TarotFollowUpRequestedEvent
 
         Returns:
-            TaroFollowUpGeneratedEvent if successful
+            TarotFollowUpGeneratedEvent if successful
         """
         try:
             assert event.session_id is not None
@@ -200,7 +200,7 @@ class TaroFollowUpHandler:
             token_success = self.token_service.deduct_tokens(
                 user_id=event.user_id,
                 tokens=follow_up_tokens,
-                reason="taro_follow_up",
+                reason="tarot_follow_up",
                 reference_id=event.session_id,
             )
 
@@ -218,7 +218,7 @@ class TaroFollowUpHandler:
                 )
 
             # Return follow-up generated event
-            return TaroFollowUpGeneratedEvent(
+            return TarotFollowUpGeneratedEvent(
                 session_id=event.session_id,
                 user_id=event.user_id,
                 follow_up_count=updated_session.follow_up_count

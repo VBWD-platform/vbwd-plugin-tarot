@@ -9,7 +9,7 @@ on:
 
 jobs:
   ci:
-    name: CI — taro
+    name: CI — tarot
     runs-on: ubuntu-latest
 
     steps:
@@ -21,13 +21,13 @@ jobs:
           ref: main
           path: vbwd-backend
 
-      # ── 2. Clone plugin directly into vbwd-backend/plugins/taro ────
+      # ── 2. Clone plugin directly into vbwd-backend/plugins/tarot ────
       - name: Clone plugin
         uses: actions/checkout@v4
         with:
-          path: vbwd-backend/plugins/taro
+          path: vbwd-backend/plugins/tarot
 
-      # ── 2b. Clone bot_base dependency (taro's bot consumer imports it) ────
+      # ── 2b. Clone bot_base dependency (tarot's bot consumer imports it) ────
       - name: Clone bot_base dependency
         uses: actions/checkout@v4
         with:
@@ -41,14 +41,14 @@ jobs:
           repository: VBWD-platform/vbwd-plugin-bot-telegram
           path: vbwd-backend/plugins/bot_telegram
 
-      # ── 2b. Clone chat plugin (taro runtime dependency) ──────────────────
+      # ── 2b. Clone chat plugin (tarot runtime dependency) ──────────────────
       - name: Clone chat plugin
         uses: actions/checkout@v4
         with:
           repository: VBWD-platform/vbwd-plugin-chat
           path: vbwd-backend/plugins/chat
 
-      # ── 2c. Clone subscription dependency (taro declares dependencies=["subscription"]) ──
+      # ── 2c. Clone subscription dependency (tarot declares dependencies=["subscription"]) ──
       - name: Clone subscription plugin
         uses: actions/checkout@v4
         with:
@@ -78,19 +78,19 @@ jobs:
       - name: Style check — Black
         run: |
           black --check --diff \
-            vbwd-backend/plugins/taro/ \
+            vbwd-backend/plugins/tarot/ \
             --exclude='/(\.git|\.github|__pycache__|\.pytest_cache)/'
 
       - name: Style check — Flake8
         run: |
-          flake8 vbwd-backend/plugins/taro/ \
+          flake8 vbwd-backend/plugins/tarot/ \
             --max-line-length=120 \
             --extend-ignore=E203,W503 \
             --exclude=.git,.github,__pycache__,.pytest_cache
 
       - name: Style check — Mypy
         run: |
-          PLUGIN_SRC=vbwd-backend/plugins/taro/src
+          PLUGIN_SRC=vbwd-backend/plugins/tarot/src
           if [ -d "$PLUGIN_SRC" ]; then
             mypy "$PLUGIN_SRC" \
               --ignore-missing-imports \
@@ -129,7 +129,7 @@ jobs:
       - name: Enable all present plugins
         working-directory: vbwd-backend
         # Two passes: a plugin whose declared dependency sorts AFTER it
-        # alphabetically (e.g. taro depends on subscription) fails to enable on
+        # alphabetically (e.g. tarot depends on subscription) fails to enable on
         # the first pass because the dependency is not yet enabled. The second
         # pass enables it once the dependency is up. enable is idempotent.
         run: |
@@ -152,11 +152,11 @@ jobs:
         working-directory: vbwd-backend
         run: |
           mkdir -p test-results
-          if [ -d "plugins/taro/tests/unit" ]; then
-            TESTS_DIR="plugins/taro/tests/unit/"
-          elif [ -d "plugins/taro/tests" ]; then
-            TESTS_DIR="plugins/taro/tests/"
-            IGNORE="--ignore=plugins/taro/tests/integration/"
+          if [ -d "plugins/tarot/tests/unit" ]; then
+            TESTS_DIR="plugins/tarot/tests/unit/"
+          elif [ -d "plugins/tarot/tests" ]; then
+            TESTS_DIR="plugins/tarot/tests/"
+            IGNORE="--ignore=plugins/tarot/tests/integration/"
           else
             echo "No unit tests — skipping."
             exit 0
@@ -171,7 +171,7 @@ jobs:
         if: steps.start-services.conclusion == 'success'
         working-directory: vbwd-backend
         run: |
-          if [ -d "plugins/taro/tests/integration" ]; then
+          if [ -d "plugins/tarot/tests/integration" ]; then
             echo "Container states before integration tests:"
             docker compose ps
             STATE=$(docker compose ps api --format '{{.State}}' 2>/dev/null || echo "unknown")
@@ -180,7 +180,7 @@ jobs:
               docker compose logs --tail=50 api
               exit 1
             fi
-            docker compose exec -T api pytest plugins/taro/tests/integration/ \
+            docker compose exec -T api pytest plugins/tarot/tests/integration/ \
               -v --tb=short \
               --junit-xml=/app/test-results/integration.xml
           else
@@ -192,7 +192,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-taro-${{ github.run_number }}
+          name: test-results-tarot-${{ github.run_number }}
           path: vbwd-backend/test-results/
           if-no-files-found: ignore
           retention-days: 14

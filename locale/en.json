@@ -1,5 +1,5 @@
 {
-  "plugin_name": "Taro",
+  "plugin_name": "Tarot",
   "plugin_description": "Tarot card reading with LLM-powered interpretations",
   "errors": {
     "daily_limit_exceeded": "Daily session limit reached for your plan",

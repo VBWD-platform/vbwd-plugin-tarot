@@ -1,8 +1,8 @@
 """Tests for ArcanaRepository."""
 import pytest
-from plugins.taro.src.models.arcana import Arcana
-from plugins.taro.src.repositories.arcana_repository import ArcanaRepository
-from plugins.taro.src.enums import ArcanaType
+from plugins.tarot.src.models.arcana import Arcana
+from plugins.tarot.src.repositories.arcana_repository import ArcanaRepository
+from plugins.tarot.src.enums import ArcanaType
 
 
 @pytest.fixture

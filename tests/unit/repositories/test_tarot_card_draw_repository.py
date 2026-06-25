@@ -1,30 +1,30 @@
-"""Tests for TaroCardDrawRepository."""
+"""Tests for TarotCardDrawRepository."""
 import pytest
 from datetime import datetime, timedelta
 from uuid import uuid4
-from plugins.taro.src.models.arcana import Arcana
-from plugins.taro.src.models.taro_session import TaroSession
-from plugins.taro.src.models.taro_card_draw import TaroCardDraw
-from plugins.taro.src.repositories.taro_card_draw_repository import (
-    TaroCardDrawRepository,
+from plugins.tarot.src.models.arcana import Arcana
+from plugins.tarot.src.models.tarot_session import TarotSession
+from plugins.tarot.src.models.tarot_card_draw import TarotCardDraw
+from plugins.tarot.src.repositories.tarot_card_draw_repository import (
+    TarotCardDrawRepository,
 )
-from plugins.taro.src.enums import (
+from plugins.tarot.src.enums import (
     ArcanaType,
     CardPosition,
     CardOrientation,
-    TaroSessionStatus,
+    TarotSessionStatus,
 )
 
 
 @pytest.fixture
 def card_draw_repo(db):
-    """Fixture providing TaroCardDrawRepository instance."""
-    return TaroCardDrawRepository(db.session)
+    """Fixture providing TarotCardDrawRepository instance."""
+    return TarotCardDrawRepository(db.session)
 
 
 @pytest.fixture
 def sample_cards(db):
-    """Fixture creating sample TaroCardDraw records."""
+    """Fixture creating sample TarotCardDraw records."""
     user_id = str(uuid4())
     str(uuid4())
 
@@ -58,9 +58,9 @@ def sample_cards(db):
     db.session.commit()
 
     # Create session
-    session = TaroSession(
+    session = TarotSession(
         user_id=user_id,
-        status=TaroSessionStatus.ACTIVE.value,
+        status=TarotSessionStatus.ACTIVE.value,
         started_at=datetime.utcnow(),
         expires_at=datetime.utcnow() + timedelta(minutes=30),
         spread_id="spread-001",
@@ -69,21 +69,21 @@ def sample_cards(db):
     db.session.commit()
 
     # Create 3-card spread
-    past_card = TaroCardDraw(
+    past_card = TarotCardDraw(
         session_id=str(session.id),
         arcana_id=str(fool.id),
         position=CardPosition.PAST.value,
         orientation=CardOrientation.UPRIGHT.value,
         ai_interpretation="In the past, you took a bold leap of faith...",
     )
-    present_card = TaroCardDraw(
+    present_card = TarotCardDraw(
         session_id=str(session.id),
         arcana_id=str(magician.id),
         position=CardPosition.PRESENT.value,
         orientation=CardOrientation.REVERSED.value,
         ai_interpretation="Currently, your creative energy is blocked...",
     )
-    future_card = TaroCardDraw(
+    future_card = TarotCardDraw(
         session_id=str(session.id),
         arcana_id=str(priestess.id),
         position=CardPosition.FUTURE.value,
@@ -106,11 +106,11 @@ def sample_cards(db):
     }
 
 
-class TestTaroCardDrawRepository:
-    """Test TaroCardDrawRepository methods."""
+class TestTarotCardDrawRepository:
+    """Test TarotCardDrawRepository methods."""
 
     def test_create_card_draw(self, card_draw_repo, db):
-        """Test creating a TaroCardDraw."""
+        """Test creating a TarotCardDraw."""
         user_id = str(uuid4())
 
         # Create arcana first (FK constraint on arcana_id)
@@ -125,7 +125,7 @@ class TestTaroCardDrawRepository:
         db.session.commit()
 
         # Create session
-        session = TaroSession(
+        session = TarotSession(
             user_id=user_id,
             started_at=datetime.utcnow(),
             expires_at=datetime.utcnow() + timedelta(minutes=30),
@@ -146,7 +146,7 @@ class TestTaroCardDrawRepository:
         assert result.position == CardPosition.PAST.value
 
     def test_get_card_by_id(self, card_draw_repo, sample_cards):
-        """Test retrieving TaroCardDraw by ID."""
+        """Test retrieving TarotCardDraw by ID."""
         past_card = sample_cards["past_card"]
         result = card_draw_repo.get_by_id(str(past_card.id))
 
@@ -253,7 +253,7 @@ class TestTaroCardDrawRepository:
 
         # Get session and delete it
         session = (
-            db.session.query(TaroSession).filter(TaroSession.id == session_id).first()
+            db.session.query(TarotSession).filter(TarotSession.id == session_id).first()
         )
         db.session.delete(session)
         db.session.commit()

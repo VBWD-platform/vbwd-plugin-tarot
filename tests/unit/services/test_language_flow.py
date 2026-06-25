@@ -3,15 +3,17 @@ import pytest
 from unittest.mock import Mock
 from uuid import uuid4
 
-from plugins.taro.src.services.taro_session_service import TaroSessionService
-from plugins.taro.src.services.prompt_service import PromptService
-from plugins.taro.src.repositories.arcana_repository import ArcanaRepository
-from plugins.taro.src.repositories.taro_session_repository import TaroSessionRepository
-from plugins.taro.src.repositories.taro_card_draw_repository import (
-    TaroCardDrawRepository,
+from plugins.tarot.src.services.tarot_session_service import TarotSessionService
+from plugins.tarot.src.services.prompt_service import PromptService
+from plugins.tarot.src.repositories.arcana_repository import ArcanaRepository
+from plugins.tarot.src.repositories.tarot_session_repository import (
+    TarotSessionRepository,
 )
-from plugins.taro.src.models.arcana import Arcana
-from plugins.taro.src.enums import ArcanaType
+from plugins.tarot.src.repositories.tarot_card_draw_repository import (
+    TarotCardDrawRepository,
+)
+from plugins.tarot.src.models.arcana import Arcana
+from plugins.tarot.src.enums import ArcanaType
 
 
 class TestCompleteLanguageFlow:
@@ -42,8 +44,8 @@ class TestCompleteLanguageFlow:
 
         # Setup: Real repositories
         arcana_repo = ArcanaRepository(db.session)
-        session_repo = TaroSessionRepository(db.session)
-        card_draw_repo = TaroCardDrawRepository(db.session)
+        session_repo = TarotSessionRepository(db.session)
+        card_draw_repo = TarotCardDrawRepository(db.session)
 
         # Create sample arcanas
         self._create_sample_arcanas(db)
@@ -59,7 +61,7 @@ class TestCompleteLanguageFlow:
         )
 
         # Setup: Service with real components + mocked LLM
-        service = TaroSessionService(
+        service = TarotSessionService(
             arcana_repo=arcana_repo,
             session_repo=session_repo,
             card_draw_repo=card_draw_repo,
@@ -112,8 +114,8 @@ class TestCompleteLanguageFlow:
 
         # Setup: Real components
         arcana_repo = ArcanaRepository(db.session)
-        session_repo = TaroSessionRepository(db.session)
-        card_draw_repo = TaroCardDrawRepository(db.session)
+        session_repo = TarotSessionRepository(db.session)
+        card_draw_repo = TarotCardDrawRepository(db.session)
         self._create_sample_arcanas(db)
 
         prompt_service = PromptService.from_dict(
@@ -125,7 +127,7 @@ class TestCompleteLanguageFlow:
             }
         )
 
-        service = TaroSessionService(
+        service = TarotSessionService(
             arcana_repo=arcana_repo,
             session_repo=session_repo,
             card_draw_repo=card_draw_repo,
@@ -156,8 +158,8 @@ class TestCompleteLanguageFlow:
 
         # Setup: Real components
         arcana_repo = ArcanaRepository(db.session)
-        session_repo = TaroSessionRepository(db.session)
-        card_draw_repo = TaroCardDrawRepository(db.session)
+        session_repo = TarotSessionRepository(db.session)
+        card_draw_repo = TarotCardDrawRepository(db.session)
         self._create_sample_arcanas(db)
 
         prompt_service = PromptService.from_dict(
@@ -169,7 +171,7 @@ class TestCompleteLanguageFlow:
             }
         )
 
-        service = TaroSessionService(
+        service = TarotSessionService(
             arcana_repo=arcana_repo,
             session_repo=session_repo,
             card_draw_repo=card_draw_repo,
@@ -213,37 +215,37 @@ class TestLanguageCodeConversion:
     )
     def test_language_code_to_name_conversion(self, lang_code, expected_name):
         """Validate language code conversion for all 8 languages"""
-        result = TaroSessionService._get_language_name(lang_code)
+        result = TarotSessionService._get_language_name(lang_code)
         assert result == expected_name
 
     def test_language_code_uppercase_handling(self):
         """Should handle uppercase language codes"""
-        assert TaroSessionService._get_language_name("RU") == "Русский (Russian)"
-        assert TaroSessionService._get_language_name("DE") == "Deutsch (German)"
-        assert TaroSessionService._get_language_name("FR") == "Français (French)"
+        assert TarotSessionService._get_language_name("RU") == "Русский (Russian)"
+        assert TarotSessionService._get_language_name("DE") == "Deutsch (German)"
+        assert TarotSessionService._get_language_name("FR") == "Français (French)"
 
     def test_language_code_mixed_case_handling(self):
         """Should handle mixed case language codes"""
-        assert TaroSessionService._get_language_name("Ru") == "Русский (Russian)"
-        assert TaroSessionService._get_language_name("De") == "Deutsch (German)"
+        assert TarotSessionService._get_language_name("Ru") == "Русский (Russian)"
+        assert TarotSessionService._get_language_name("De") == "Deutsch (German)"
 
     def test_invalid_language_code_defaults_to_english(self):
         """Should default to English for invalid language codes"""
-        assert TaroSessionService._get_language_name("invalid") == "English"
-        assert TaroSessionService._get_language_name("xx") == "English"
-        assert TaroSessionService._get_language_name("") == "English"
+        assert TarotSessionService._get_language_name("invalid") == "English"
+        assert TarotSessionService._get_language_name("xx") == "English"
+        assert TarotSessionService._get_language_name("") == "English"
 
     def test_language_conversion_preserves_special_characters(self):
         """Should preserve special characters in language names"""
         # Russian Cyrillic
-        assert "Русский" in TaroSessionService._get_language_name("ru")
+        assert "Русский" in TarotSessionService._get_language_name("ru")
         # French accent
-        assert "Français" in TaroSessionService._get_language_name("fr")
+        assert "Français" in TarotSessionService._get_language_name("fr")
         # Spanish tilde
-        assert "Español" in TaroSessionService._get_language_name("es")
+        assert "Español" in TarotSessionService._get_language_name("es")
         # Japanese characters
-        assert "日本語" in TaroSessionService._get_language_name("ja")
+        assert "日本語" in TarotSessionService._get_language_name("ja")
         # Thai characters
-        assert "ไทย" in TaroSessionService._get_language_name("th")
+        assert "ไทย" in TarotSessionService._get_language_name("th")
         # Chinese characters
-        assert "中文" in TaroSessionService._get_language_name("zh")
+        assert "中文" in TarotSessionService._get_language_name("zh")

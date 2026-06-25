@@ -7,17 +7,17 @@ if TYPE_CHECKING:
 
     # Bot-base is an OPTIONAL bridge (S45.3 / D1 inversion). It is imported only
     # for type checking here; at runtime the bot-consumer methods lazily import
-    # the neutral DTOs inside their bodies, so ``taro`` imports cleanly even when
+    # the neutral DTOs inside their bodies, so ``tarot`` imports cleanly even when
     # bot-base is absent (no hard dependency, no top-level ``bot_base`` import).
     from plugins.bot_base.bot_base.types import BotCommand, BotInbound, BotReply
-    from plugins.taro.src.services.taro_session_service import (
+    from plugins.tarot.src.services.tarot_session_service import (
         FreeReadingCard,
-        TaroSessionService,
+        TarotSessionService,
     )
 
 
 DEFAULT_CONFIG = {
-    # The model/endpoint/key now live in a CORE "LLM Connection" (S97). taro
+    # The model/endpoint/key now live in a CORE "LLM Connection" (S97). tarot
     # keeps only the optional slug of the connection to use; empty ⇒ the active
     # default connection.
     "llm_connection_slug": "",
@@ -28,14 +28,14 @@ DEFAULT_CONFIG = {
     "bot_enabled": False,
 }
 
-BOT_NAMESPACE = "taro"
+BOT_NAMESPACE = "tarot"
 DRAW_COMMAND = "draw"
 READING_COMMAND = "reading"
 SINGLE_CARD_COUNT = 1
 FULL_READING_CARD_COUNT = 3
 
 
-class TaroPlugin(BasePlugin):
+class TarotPlugin(BasePlugin):
     """Tarot card reading with AI-powered interpretations.
 
     Class MUST be defined in __init__.py (not re-exported) due to
@@ -45,11 +45,11 @@ class TaroPlugin(BasePlugin):
     ``BotCommandProvider`` seam (``bot_namespace`` + ``get_bot_commands`` +
     ``handle_action``) so its commands light up over every bot adapter
     (Telegram now, meinchat later) with no consumer change. The bridge is
-    optional — see the lazy imports below. taro is the *second* independent
+    optional — see the lazy imports below. tarot is the *second* independent
     consumer on the seam, proving the bridge serves more than one plugin.
 
-    All taro bot commands are FREE + ANONYMOUS: no link required, no token
-    billing, no identity mutation. taro-over-bot is a free teaser; paid
+    All tarot bot commands are FREE + ANONYMOUS: no link required, no token
+    billing, no identity mutation. tarot-over-bot is a free teaser; paid
     readings stay web-only via the ``create_session`` path.
     """
 
@@ -59,7 +59,7 @@ class TaroPlugin(BasePlugin):
     @property
     def metadata(self) -> PluginMetadata:
         return PluginMetadata(
-            name="taro",
+            name="tarot",
             version="1.0.0",
             author="VBWD Team",
             description="Tarot card reading with LLM-powered interpretations",
@@ -74,19 +74,19 @@ class TaroPlugin(BasePlugin):
         super().initialize(merged)
 
     def get_blueprint(self) -> Optional["Blueprint"]:
-        from plugins.taro.src.routes import taro_bp
+        from plugins.tarot.src.routes import tarot_bp
 
-        return taro_bp
+        return tarot_bp
 
     def get_url_prefix(self) -> Optional[str]:
-        return "/api/v1/taro"
+        return "/api/v1/tarot"
 
     @property
     def admin_permissions(self):
         return [
-            {"key": "taro.sessions.view", "label": "View sessions", "group": "Taro"},
-            {"key": "taro.arcana.manage", "label": "Manage arcana", "group": "Taro"},
-            {"key": "taro.configure", "label": "Taro settings", "group": "Taro"},
+            {"key": "tarot.sessions.view", "label": "View sessions", "group": "Tarot"},
+            {"key": "tarot.arcana.manage", "label": "Manage arcana", "group": "Tarot"},
+            {"key": "tarot.configure", "label": "Tarot settings", "group": "Tarot"},
         ]
 
     def on_enable(self) -> None:
@@ -97,10 +97,10 @@ class TaroPlugin(BasePlugin):
 
     # ── bot-base consumer seam (S45.3) ───────────────────────────────────────
     def get_bot_commands(self) -> List["BotCommand"]:
-        """The commands ``taro`` contributes to the bot menu.
+        """The commands ``tarot`` contributes to the bot menu.
 
         Returns ``[]`` when ``bot_enabled`` is false so bot-base's
-        ``CommandRegistry`` never surfaces ``/draw`` / ``/reading`` — taro web
+        ``CommandRegistry`` never surfaces ``/draw`` / ``/reading`` — tarot web
         behavior stays entirely untouched. The neutral ``BotCommand`` DTO is
         imported lazily so this module loads even when bot-base is absent.
         """
@@ -125,7 +125,7 @@ class TaroPlugin(BasePlugin):
     def handle_action(self, context: "BotInbound") -> "BotReply":
         """Handle a ``/draw`` / ``/reading`` command or a tapped choice (D7).
 
-        Every taro bot command is FREE + ANONYMOUS: a reading is produced for
+        Every tarot bot command is FREE + ANONYMOUS: a reading is produced for
         any sender (linked or not), with no token debit and no identity
         mutation. ``/reading`` is a full three-card spread; everything else
         (``/draw`` or a tapped card choice) is a single-card pull.
@@ -150,26 +150,26 @@ class TaroPlugin(BasePlugin):
         ]
         return BotReply(text="\n\n".join(lines))
 
-    def _build_reading_service(self) -> "TaroSessionService":
+    def _build_reading_service(self) -> "TarotSessionService":
         """Build the same reading service the web route uses (DRY).
 
         Resolves the service off the live ``db.session`` exactly as the web
-        ``/api/v1/taro`` routes do — so a bot reading reuses taro's existing
+        ``/api/v1/tarot`` routes do — so a bot reading reuses tarot's existing
         interpretation logic with zero new reading code. No token service is
         resolved here: the bot path never bills.
         """
         from vbwd.extensions import db
-        from plugins.taro.src.repositories.arcana_repository import ArcanaRepository
-        from plugins.taro.src.repositories.taro_session_repository import (
-            TaroSessionRepository,
+        from plugins.tarot.src.repositories.arcana_repository import ArcanaRepository
+        from plugins.tarot.src.repositories.tarot_session_repository import (
+            TarotSessionRepository,
         )
-        from plugins.taro.src.repositories.taro_card_draw_repository import (
-            TaroCardDrawRepository,
+        from plugins.tarot.src.repositories.tarot_card_draw_repository import (
+            TarotCardDrawRepository,
         )
-        from plugins.taro.src.services.taro_session_service import TaroSessionService
+        from plugins.tarot.src.services.tarot_session_service import TarotSessionService
 
-        return TaroSessionService(
+        return TarotSessionService(
             arcana_repo=ArcanaRepository(db.session),
-            session_repo=TaroSessionRepository(db.session),
-            card_draw_repo=TaroCardDrawRepository(db.session),
+            session_repo=TarotSessionRepository(db.session),
+            card_draw_repo=TarotCardDrawRepository(db.session),
         )

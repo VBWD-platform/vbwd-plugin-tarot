@@ -1,14 +1,14 @@
 """Tests for Arcana table population and image file consistency."""
 import pytest
 from pathlib import Path
-from plugins.taro.src.models.arcana import Arcana
-from plugins.taro.src.enums import ArcanaType
+from plugins.tarot.src.models.arcana import Arcana
+from plugins.tarot.src.enums import ArcanaType
 
 
 @pytest.fixture(autouse=True)
 def populated_db(db):
     """Seed the database with all 78 arcana cards."""
-    from plugins.taro.src.bin.populate_arcanas import populate_arcanas
+    from plugins.tarot.src.bin.populate_arcanas import populate_arcanas
 
     populate_arcanas()
     yield db
@@ -59,7 +59,7 @@ class TestArcanaPopulation:
                 card.image_url, str
             ), f"Card '{card.name}' image_url is not a string"
             assert card.image_url.startswith(
-                "/api/v1/taro/assets/arcana/"
+                "/api/v1/tarot/assets/arcana/"
             ), f"Card '{card.name}' has invalid image URL: {card.image_url}"
 
     def test_major_arcana_image_paths(self, db):
@@ -70,7 +70,7 @@ class TestArcanaPopulation:
             .all()
         )
         for card in major_arcana:
-            expected_pattern = f"/api/v1/taro/assets/arcana/major/{card.number:02d}-"
+            expected_pattern = f"/api/v1/tarot/assets/arcana/major/{card.number:02d}-"
             assert card.image_url.startswith(
                 expected_pattern
             ), f"Card '{card.name}' URL doesn't match pattern: {card.image_url}"
@@ -81,7 +81,7 @@ class TestArcanaPopulation:
         for card in minor_arcana:
             suit_lower = card.suit.lower()
             rank_lower = card.rank.lower()
-            expected_pattern = f"/api/v1/taro/assets/arcana/minor/{suit_lower}/{rank_lower}-of-{suit_lower}.svg"
+            expected_pattern = f"/api/v1/tarot/assets/arcana/minor/{suit_lower}/{rank_lower}-of-{suit_lower}.svg"
             assert (
                 card.image_url == expected_pattern
             ), f"Card '{card.name}' URL mismatch.\nExpected: {expected_pattern}\nGot: {card.image_url}"
@@ -93,9 +93,9 @@ class TestArcanaPopulation:
 
         for card in all_cards:
             # Extract file path from URL
-            # URL format: /api/v1/taro/assets/arcana/major/00-the-fool.svg
+            # URL format: /api/v1/tarot/assets/arcana/major/00-the-fool.svg
             # File path should be: assets/arcana/major/00-the-fool.svg
-            url_parts = card.image_url.split("/api/v1/taro/assets/arcana/")[1]
+            url_parts = card.image_url.split("/api/v1/tarot/assets/arcana/")[1]
             file_path = assets_dir / url_parts
 
             assert (
@@ -197,7 +197,7 @@ class TestArcanaPopulation:
         initial_count = db.session.query(Arcana).count()
 
         # Import and run populator again
-        from plugins.taro.src.bin.populate_arcanas import populate_arcanas
+        from plugins.tarot.src.bin.populate_arcanas import populate_arcanas
 
         populate_arcanas()
 
@@ -208,12 +208,12 @@ class TestArcanaPopulation:
         ), f"Populator created duplicates: {initial_count} -> {final_count}"
 
 
-class TestTaroAssetServing:
-    """Test Taro plugin asset serving and availability."""
+class TestTarotAssetServing:
+    """Test Tarot plugin asset serving and availability."""
 
     def test_arcana_asset_endpoint_returns_svg(self, client):
         """Test that arcana asset endpoint returns valid SVG file."""
-        response = client.get("/api/v1/taro/assets/arcana/major/00-the-fool.svg")
+        response = client.get("/api/v1/tarot/assets/arcana/major/00-the-fool.svg")
         assert response.status_code == 200
         assert "image/svg+xml" in response.content_type
         assert b"<?xml" in response.data
@@ -221,20 +221,20 @@ class TestTaroAssetServing:
 
     def test_minor_arcana_asset_endpoint(self, client):
         """Test that minor arcana asset endpoint works."""
-        response = client.get("/api/v1/taro/assets/arcana/minor/cups/ace-of-cups.svg")
+        response = client.get("/api/v1/tarot/assets/arcana/minor/cups/ace-of-cups.svg")
         assert response.status_code == 200
         assert "image/svg+xml" in response.content_type
         assert b"Ace of Cups" in response.data or b"of Cups" in response.data
 
     def test_nonexistent_asset_returns_404(self, client):
         """Test that requesting non-existent asset returns 404."""
-        response = client.get("/api/v1/taro/assets/arcana/major/99-nonexistent.svg")
+        response = client.get("/api/v1/tarot/assets/arcana/major/99-nonexistent.svg")
         assert response.status_code == 404
 
     def test_directory_traversal_attack_prevented(self, client):
         """Test that directory traversal attempts are blocked."""
         # Attempt to traverse directories
-        response = client.get("/api/v1/taro/assets/arcana/../../etc/passwd")
+        response = client.get("/api/v1/tarot/assets/arcana/../../etc/passwd")
         assert response.status_code in [400, 403, 404]
 
     def test_all_major_arcana_assets_accessible(self, client, db):

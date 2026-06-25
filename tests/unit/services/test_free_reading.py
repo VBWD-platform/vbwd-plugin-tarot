@@ -1,10 +1,10 @@
 """Unit tests for the anonymous, free bot reading path (S45.3).
 
 The bot consumer needs a reading with **no** persisted session and **no** token
-billing (taro-over-bot is a free teaser). ``draw_free_reading`` reuses taro's
+billing (tarot-over-bot is a free teaser). ``draw_free_reading`` reuses tarot's
 existing interpretation logic (``arcana_repo.get_random`` + the per-card
 interpretation already used by the web spread) without writing a
-``TaroSession`` / ``TaroCardDraw`` row and without touching any token service.
+``TarotSession`` / ``TarotCardDraw`` row and without touching any token service.
 
 These specs use ``MagicMock`` repos (no DB) following the chat unit-test idiom.
 """
@@ -12,10 +12,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from plugins.taro.src.enums import CardOrientation, CardPosition
-from plugins.taro.src.services.taro_session_service import (
+from plugins.tarot.src.enums import CardOrientation, CardPosition
+from plugins.tarot.src.services.tarot_session_service import (
     FreeReadingCard,
-    TaroSessionService,
+    TarotSessionService,
 )
 
 
@@ -33,7 +33,7 @@ def service():
     session_repo = MagicMock()
     card_draw_repo = MagicMock()
     # No LLM adapter / prompt service → interpretation falls back to base meaning.
-    return TaroSessionService(
+    return TarotSessionService(
         arcana_repo=arcana_repo,
         session_repo=session_repo,
         card_draw_repo=card_draw_repo,

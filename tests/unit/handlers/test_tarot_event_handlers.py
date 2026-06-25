@@ -1,22 +1,22 @@
-"""Tests for Taro event handlers."""
+"""Tests for Tarot event handlers."""
 import pytest
 from datetime import datetime, timedelta
 from uuid import uuid4
 from unittest.mock import Mock, patch
-from plugins.taro.src.handlers import (
-    TaroSessionCreatedHandler,
-    TaroFollowUpHandler,
+from plugins.tarot.src.handlers import (
+    TarotSessionCreatedHandler,
+    TarotFollowUpHandler,
 )
-from plugins.taro.src.events import (
-    TaroSessionCreatedEvent,
-    TaroFollowUpRequestedEvent,
+from plugins.tarot.src.events import (
+    TarotSessionCreatedEvent,
+    TarotFollowUpRequestedEvent,
 )
-from plugins.taro.src.repositories.arcana_repository import ArcanaRepository
-from plugins.taro.src.repositories.taro_card_draw_repository import (
-    TaroCardDrawRepository,
+from plugins.tarot.src.repositories.arcana_repository import ArcanaRepository
+from plugins.tarot.src.repositories.tarot_card_draw_repository import (
+    TarotCardDrawRepository,
 )
-from plugins.taro.src.services.taro_session_service import TaroSessionService
-from plugins.taro.src.services.arcana_interpretation_service import (
+from plugins.tarot.src.services.tarot_session_service import TarotSessionService
+from plugins.tarot.src.services.arcana_interpretation_service import (
     ArcanaInterpretationService,
 )
 
@@ -37,7 +37,7 @@ def mock_token_service():
 
 @pytest.fixture
 def mock_card():
-    """Fixture providing a mock TaroCardDraw card."""
+    """Fixture providing a mock TarotCardDraw card."""
     card = Mock()
     card.id = uuid4()
     card.arcana_id = uuid4()
@@ -59,10 +59,10 @@ def mock_arcana():
 
 @pytest.fixture
 def session_handler(mock_interpreter_service, mock_token_service, mock_card):
-    """Fixture providing TaroSessionCreatedHandler with properly configured mocks."""
-    card_draw_repo = Mock(spec=TaroCardDrawRepository)
+    """Fixture providing TarotSessionCreatedHandler with properly configured mocks."""
+    card_draw_repo = Mock(spec=TarotCardDrawRepository)
     card_draw_repo.get_session_cards.return_value = [mock_card]
-    return TaroSessionCreatedHandler(
+    return TarotSessionCreatedHandler(
         interpreter_service=mock_interpreter_service,
         token_service=mock_token_service,
         card_draw_repo=card_draw_repo,
@@ -71,7 +71,7 @@ def session_handler(mock_interpreter_service, mock_token_service, mock_card):
 
 @pytest.fixture
 def mock_session():
-    """Fixture providing a mock TaroSession."""
+    """Fixture providing a mock TarotSession."""
     session = Mock()
     session.id = uuid4()
     session.user_id = str(uuid4())
@@ -85,27 +85,27 @@ def mock_session():
 def follow_up_handler(
     mock_interpreter_service, mock_token_service, mock_session, mock_card
 ):
-    """Fixture providing TaroFollowUpHandler with properly configured mocks."""
-    session_service = Mock(spec=TaroSessionService)
+    """Fixture providing TarotFollowUpHandler with properly configured mocks."""
+    session_service = Mock(spec=TarotSessionService)
     session_service.get_session.return_value = mock_session
     session_service.get_session_spread.return_value = [mock_card]
     session_service.add_follow_up.return_value = mock_session
     session_service.arcana_repo = Mock(spec=ArcanaRepository)
     session_service.arcana_repo.get_random.return_value = []
-    session_service.card_draw_repo = Mock(spec=TaroCardDrawRepository)
-    return TaroFollowUpHandler(
+    session_service.card_draw_repo = Mock(spec=TarotCardDrawRepository)
+    return TarotFollowUpHandler(
         interpreter_service=mock_interpreter_service,
         session_service=session_service,
         token_service=mock_token_service,
     )
 
 
-class TestTaroSessionCreatedHandler:
-    """Test TaroSessionCreatedHandler."""
+class TestTarotSessionCreatedHandler:
+    """Test TarotSessionCreatedHandler."""
 
     def _make_event(self):
-        """Create a valid TaroSessionCreatedEvent."""
-        return TaroSessionCreatedEvent(
+        """Create a valid TarotSessionCreatedEvent."""
+        return TarotSessionCreatedEvent(
             session_id=str(uuid4()),
             user_id=str(uuid4()),
             spread_id="spread-001",
@@ -117,7 +117,7 @@ class TestTaroSessionCreatedHandler:
     def test_handle_session_created_event(
         self, session_handler, mock_interpreter_service, mock_token_service, mock_arcana
     ):
-        """Test handling TaroSessionCreatedEvent."""
+        """Test handling TarotSessionCreatedEvent."""
         event = self._make_event()
 
         mock_interpreter_service.generate_interpretation.return_value = (
@@ -126,7 +126,7 @@ class TestTaroSessionCreatedHandler:
         )
         mock_token_service.deduct_tokens.return_value = True
 
-        with patch("plugins.taro.src.handlers.db") as mock_db:
+        with patch("plugins.tarot.src.handlers.db") as mock_db:
             mock_db.session.query.return_value.filter.return_value.first.return_value = (
                 mock_arcana
             )
@@ -140,7 +140,7 @@ class TestTaroSessionCreatedHandler:
     ):
         """Test that session creation deducts tokens."""
         user_id = str(uuid4())
-        event = TaroSessionCreatedEvent(
+        event = TarotSessionCreatedEvent(
             session_id=str(uuid4()),
             user_id=user_id,
             spread_id="spread-001",
@@ -155,7 +155,7 @@ class TestTaroSessionCreatedHandler:
         )
         mock_token_service.deduct_tokens.return_value = True
 
-        with patch("plugins.taro.src.handlers.db") as mock_db:
+        with patch("plugins.tarot.src.handlers.db") as mock_db:
             mock_db.session.query.return_value.filter.return_value.first.return_value = (
                 mock_arcana
             )
@@ -188,7 +188,7 @@ class TestTaroSessionCreatedHandler:
         )
         mock_token_service.deduct_tokens.return_value = True
 
-        with patch("plugins.taro.src.handlers.db") as mock_db:
+        with patch("plugins.tarot.src.handlers.db") as mock_db:
             mock_db.session.query.return_value.filter.return_value.first.return_value = (
                 mock_arcana
             )
@@ -209,7 +209,7 @@ class TestTaroSessionCreatedHandler:
         )
         mock_token_service.deduct_tokens.return_value = False
 
-        with patch("plugins.taro.src.handlers.db") as mock_db:
+        with patch("plugins.tarot.src.handlers.db") as mock_db:
             mock_db.session.query.return_value.filter.return_value.first.return_value = (
                 mock_arcana
             )
@@ -219,17 +219,17 @@ class TestTaroSessionCreatedHandler:
         assert result is not None
 
 
-class TestTaroFollowUpHandler:
-    """Test TaroFollowUpHandler."""
+class TestTarotFollowUpHandler:
+    """Test TarotFollowUpHandler."""
 
     def test_handle_follow_up_event(
         self, follow_up_handler, mock_interpreter_service, mock_token_service
     ):
-        """Test handling TaroFollowUpRequestedEvent."""
+        """Test handling TarotFollowUpRequestedEvent."""
         session_id = str(uuid4())
         user_id = str(uuid4())
 
-        event = TaroFollowUpRequestedEvent(
+        event = TarotFollowUpRequestedEvent(
             session_id=session_id,
             user_id=user_id,
             question="Tell me more about this card",
@@ -243,7 +243,7 @@ class TestTaroFollowUpHandler:
         )
         mock_token_service.deduct_tokens.return_value = True
 
-        with patch("plugins.taro.src.handlers.db") as mock_db:
+        with patch("plugins.tarot.src.handlers.db") as mock_db:
             mock_db.session.query.return_value.filter.return_value.first.return_value = (
                 None
             )
@@ -258,7 +258,7 @@ class TestTaroFollowUpHandler:
         session_id = str(uuid4())
         user_id = str(uuid4())
 
-        event = TaroFollowUpRequestedEvent(
+        event = TarotFollowUpRequestedEvent(
             session_id=session_id,
             user_id=user_id,
             question="More insights please",
@@ -272,7 +272,7 @@ class TestTaroFollowUpHandler:
         )
         mock_token_service.deduct_tokens.return_value = True
 
-        with patch("plugins.taro.src.handlers.db") as mock_db:
+        with patch("plugins.tarot.src.handlers.db") as mock_db:
             mock_db.session.query.return_value.filter.return_value.first.return_value = (
                 None
             )
@@ -288,7 +288,7 @@ class TestTaroFollowUpHandler:
         session_id = str(uuid4())
         user_id = str(uuid4())
 
-        event = TaroFollowUpRequestedEvent(
+        event = TarotFollowUpRequestedEvent(
             session_id=session_id,
             user_id=user_id,
             question="What else?",
@@ -302,7 +302,7 @@ class TestTaroFollowUpHandler:
         )
         mock_token_service.deduct_tokens.return_value = True
 
-        with patch("plugins.taro.src.handlers.db") as mock_db:
+        with patch("plugins.tarot.src.handlers.db") as mock_db:
             mock_db.session.query.return_value.filter.return_value.first.return_value = (
                 None
             )
@@ -318,7 +318,7 @@ class TestTaroFollowUpHandler:
         fake_session_id = str(uuid4())
         user_id = str(uuid4())
 
-        event = TaroFollowUpRequestedEvent(
+        event = TarotFollowUpRequestedEvent(
             session_id=fake_session_id,
             user_id=user_id,
             question="Question",

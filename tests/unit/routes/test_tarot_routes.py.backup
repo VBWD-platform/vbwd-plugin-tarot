@@ -1,14 +1,14 @@
-"""Tests for Taro plugin routes - API endpoints."""
+"""Tests for Tarot plugin routes - API endpoints."""
 import pytest
 from datetime import datetime, timedelta
 from uuid import uuid4
 from unittest.mock import Mock, patch, MagicMock
 from flask import Flask
-from plugins.taro.src.routes import taro_bp
-from plugins.taro.src.events import (
-    TaroSessionRequestedEvent,
-    TaroSessionCreatedEvent,
-    TaroFollowUpRequestedEvent,
+from plugins.tarot.src.routes import tarot_bp
+from plugins.tarot.src.events import (
+    TarotSessionRequestedEvent,
+    TarotSessionCreatedEvent,
+    TarotFollowUpRequestedEvent,
 )
 
 
@@ -18,7 +18,7 @@ def app():
     app = Flask(__name__)
     app.config["TESTING"] = True
     app.config["JWT_SECRET_KEY"] = "test-secret"
-    app.register_blueprint(taro_bp, url_prefix="/api/v1/taro")
+    app.register_blueprint(tarot_bp, url_prefix="/api/v1/tarot")
     return app
 
 
@@ -42,8 +42,8 @@ def mock_current_user():
     user.user_profile = Mock()
     user.user_profile.current_tarif_plan = Mock()
     user.user_profile.current_tarif_plan.id = "plan-star"
-    user.user_profile.current_tarif_plan.daily_taro_limit = 3
-    user.user_profile.current_tarif_plan.max_taro_follow_ups = 3
+    user.user_profile.current_tarif_plan.daily_tarot_limit = 3
+    user.user_profile.current_tarif_plan.max_tarot_follow_ups = 3
     return user
 
 
@@ -55,8 +55,8 @@ def mock_dispatcher():
     return dispatcher
 
 
-class TestTaroSessionRoutes:
-    """Test Taro session creation routes."""
+class TestTarotSessionRoutes:
+    """Test Tarot session creation routes."""
 
     def test_create_session_success(
         self,
@@ -65,16 +65,16 @@ class TestTaroSessionRoutes:
         mock_current_user,
         mock_dispatcher,
     ):
-        """Test creating a Taro session successfully."""
-        with patch("plugins.taro.src.routes.verify_jwt_in_request"):
-            with patch("plugins.taro.src.routes.get_jwt_identity", return_value=mock_current_user.id):
-                with patch("plugins.taro.src.routes.get_user_tarif_plan_limits", return_value=(3, 3)):
-                    with patch("plugins.taro.src.routes.check_token_balance", return_value=True):
-                        with patch("plugins.taro.src.routes.current_app") as mock_app:
+        """Test creating a Tarot session successfully."""
+        with patch("plugins.tarot.src.routes.verify_jwt_in_request"):
+            with patch("plugins.tarot.src.routes.get_jwt_identity", return_value=mock_current_user.id):
+                with patch("plugins.tarot.src.routes.get_user_tarif_plan_limits", return_value=(3, 3)):
+                    with patch("plugins.tarot.src.routes.check_token_balance", return_value=True):
+                        with patch("plugins.tarot.src.routes.current_app") as mock_app:
                             mock_app.container.event_dispatcher.return_value = mock_dispatcher
 
                             response = client.post(
-                                "/api/v1/taro/session",
+                                "/api/v1/tarot/session",
                                 headers=mock_auth_header,
                                 json={},
                             )
@@ -83,11 +83,11 @@ class TestTaroSessionRoutes:
 
     def test_create_session_without_auth(self, client):
         """Test that creating session without auth raises error."""
-        with patch("plugins.taro.src.routes.verify_jwt_in_request") as mock_verify_jwt:
+        with patch("plugins.tarot.src.routes.verify_jwt_in_request") as mock_verify_jwt:
             mock_verify_jwt.side_effect = Exception("Unauthorized")
 
             response = client.post(
-                "/api/v1/taro/session",
+                "/api/v1/tarot/session",
                 json={},
             )
             # Should either return error or raise exception
@@ -101,14 +101,14 @@ class TestTaroSessionRoutes:
         mock_dispatcher,
     ):
         """Test that exceeding daily limit returns 402."""
-        with patch("plugins.taro.src.routes.verify_jwt_in_request"):
-            with patch("plugins.taro.src.routes.get_jwt_identity", return_value=mock_current_user.id):
-                with patch("plugins.taro.src.routes.get_user_tarif_plan_limits", return_value=(0, 3)):
-                    with patch("plugins.taro.src.routes.current_app") as mock_app:
+        with patch("plugins.tarot.src.routes.verify_jwt_in_request"):
+            with patch("plugins.tarot.src.routes.get_jwt_identity", return_value=mock_current_user.id):
+                with patch("plugins.tarot.src.routes.get_user_tarif_plan_limits", return_value=(0, 3)):
+                    with patch("plugins.tarot.src.routes.current_app") as mock_app:
                         mock_app.container.event_dispatcher.return_value = mock_dispatcher
 
                         response = client.post(
-                            "/api/v1/taro/session",
+                            "/api/v1/tarot/session",
                             headers=mock_auth_header,
                             json={},
                         )
@@ -126,15 +126,15 @@ class TestTaroSessionRoutes:
         mock_dispatcher,
     ):
         """Test that insufficient tokens returns 402."""
-        with patch("plugins.taro.src.routes.verify_jwt_in_request"):
-            with patch("plugins.taro.src.routes.get_jwt_identity", return_value=mock_current_user.id):
-                with patch("plugins.taro.src.routes.get_user_tarif_plan_limits", return_value=(3, 3)):
-                    with patch("plugins.taro.src.routes.check_token_balance", return_value=False):
-                        with patch("plugins.taro.src.routes.current_app") as mock_app:
+        with patch("plugins.tarot.src.routes.verify_jwt_in_request"):
+            with patch("plugins.tarot.src.routes.get_jwt_identity", return_value=mock_current_user.id):
+                with patch("plugins.tarot.src.routes.get_user_tarif_plan_limits", return_value=(3, 3)):
+                    with patch("plugins.tarot.src.routes.check_token_balance", return_value=False):
+                        with patch("plugins.tarot.src.routes.current_app") as mock_app:
                             mock_app.container.event_dispatcher.return_value = mock_dispatcher
 
                             response = client.post(
-                                "/api/v1/taro/session",
+                                "/api/v1/tarot/session",
                                 headers=mock_auth_header,
                                 json={},
                             )
@@ -151,16 +151,16 @@ class TestTaroSessionRoutes:
         mock_current_user,
         mock_dispatcher,
     ):
-        """Test that session creation emits TaroSessionRequestedEvent."""
-        with patch("plugins.taro.src.routes.verify_jwt_in_request"):
-            with patch("plugins.taro.src.routes.get_jwt_identity", return_value=mock_current_user.id):
-                with patch("plugins.taro.src.routes.get_user_tarif_plan_limits", return_value=(3, 3)):
-                    with patch("plugins.taro.src.routes.check_token_balance", return_value=True):
-                        with patch("plugins.taro.src.routes.current_app") as mock_app:
+        """Test that session creation emits TarotSessionRequestedEvent."""
+        with patch("plugins.tarot.src.routes.verify_jwt_in_request"):
+            with patch("plugins.tarot.src.routes.get_jwt_identity", return_value=mock_current_user.id):
+                with patch("plugins.tarot.src.routes.get_user_tarif_plan_limits", return_value=(3, 3)):
+                    with patch("plugins.tarot.src.routes.check_token_balance", return_value=True):
+                        with patch("plugins.tarot.src.routes.current_app") as mock_app:
                             mock_app.container.event_dispatcher.return_value = mock_dispatcher
 
                             response = client.post(
-                                "/api/v1/taro/session",
+                                "/api/v1/tarot/session",
                                 headers=mock_auth_header,
                                 json={},
                             )
@@ -177,15 +177,15 @@ class TestTaroSessionRoutes:
         mock_dispatcher,
     ):
         """Test that session response includes 3-card spread."""
-        with patch("plugins.taro.src.routes.verify_jwt_in_request"):
-            with patch("plugins.taro.src.routes.get_jwt_identity", return_value=mock_current_user.id):
-                with patch("plugins.taro.src.routes.get_user_tarif_plan_limits", return_value=(3, 3)):
-                    with patch("plugins.taro.src.routes.check_token_balance", return_value=True):
-                        with patch("plugins.taro.src.routes.current_app") as mock_app:
+        with patch("plugins.tarot.src.routes.verify_jwt_in_request"):
+            with patch("plugins.tarot.src.routes.get_jwt_identity", return_value=mock_current_user.id):
+                with patch("plugins.tarot.src.routes.get_user_tarif_plan_limits", return_value=(3, 3)):
+                    with patch("plugins.tarot.src.routes.check_token_balance", return_value=True):
+                        with patch("plugins.tarot.src.routes.current_app") as mock_app:
                             mock_app.container.event_dispatcher.return_value = mock_dispatcher
 
                             response = client.post(
-                                "/api/v1/taro/session",
+                                "/api/v1/tarot/session",
                                 headers=mock_auth_header,
                                 json={},
                             )
@@ -197,8 +197,8 @@ class TestTaroSessionRoutes:
                                     assert len(data["session"]["cards"]) == 3
 
 
-class TestTaroFollowUpRoutes:
-    """Test Taro follow-up question routes."""
+class TestTarotFollowUpRoutes:
+    """Test Tarot follow-up question routes."""
 
     def test_follow_up_same_cards_success(
         self,
@@ -210,17 +210,17 @@ class TestTaroFollowUpRoutes:
         """Test follow-up with SAME_CARDS type successfully."""
         session_id = str(uuid4())
 
-        with patch("plugins.taro.src.routes.require_auth") as mock_require_auth:
-            with patch("plugins.taro.src.routes.current_user", mock_current_user):
-                with patch("plugins.taro.src.routes.dispatcher", mock_dispatcher):
+        with patch("plugins.tarot.src.routes.require_auth") as mock_require_auth:
+            with patch("plugins.tarot.src.routes.current_user", mock_current_user):
+                with patch("plugins.tarot.src.routes.dispatcher", mock_dispatcher):
                     with patch(
-                        "src.plugins.taro.routes.TaroSessionService.get_session",
+                        "src.plugins.tarot.routes.TarotSessionService.get_session",
                         return_value=Mock(id=session_id, status="ACTIVE"),
                     ):
                         mock_require_auth.return_value = lambda f: f
 
                         response = client.post(
-                            f"/api/v1/taro/session/{session_id}/follow-up",
+                            f"/api/v1/tarot/session/{session_id}/follow-up",
                             headers=mock_auth_header,
                             json={
                                 "question": "Tell me more",
@@ -243,17 +243,17 @@ class TestTaroFollowUpRoutes:
         """Test follow-up with ADDITIONAL card type successfully."""
         session_id = str(uuid4())
 
-        with patch("plugins.taro.src.routes.require_auth") as mock_require_auth:
-            with patch("plugins.taro.src.routes.current_user", mock_current_user):
-                with patch("plugins.taro.src.routes.dispatcher", mock_dispatcher):
+        with patch("plugins.tarot.src.routes.require_auth") as mock_require_auth:
+            with patch("plugins.tarot.src.routes.current_user", mock_current_user):
+                with patch("plugins.tarot.src.routes.dispatcher", mock_dispatcher):
                     with patch(
-                        "src.plugins.taro.routes.TaroSessionService.get_session",
+                        "src.plugins.tarot.routes.TarotSessionService.get_session",
                         return_value=Mock(id=session_id, status="ACTIVE"),
                     ):
                         mock_require_auth.return_value = lambda f: f
 
                         response = client.post(
-                            f"/api/v1/taro/session/{session_id}/follow-up",
+                            f"/api/v1/tarot/session/{session_id}/follow-up",
                             headers=mock_auth_header,
                             json={
                                 "question": "Show me more insights",
@@ -275,17 +275,17 @@ class TestTaroFollowUpRoutes:
         """Test follow-up with NEW_SPREAD type successfully."""
         session_id = str(uuid4())
 
-        with patch("plugins.taro.src.routes.require_auth") as mock_require_auth:
-            with patch("plugins.taro.src.routes.current_user", mock_current_user):
-                with patch("plugins.taro.src.routes.dispatcher", mock_dispatcher):
+        with patch("plugins.tarot.src.routes.require_auth") as mock_require_auth:
+            with patch("plugins.tarot.src.routes.current_user", mock_current_user):
+                with patch("plugins.tarot.src.routes.dispatcher", mock_dispatcher):
                     with patch(
-                        "src.plugins.taro.routes.TaroSessionService.get_session",
+                        "src.plugins.tarot.routes.TarotSessionService.get_session",
                         return_value=Mock(id=session_id, status="ACTIVE"),
                     ):
                         mock_require_auth.return_value = lambda f: f
 
                         response = client.post(
-                            f"/api/v1/taro/session/{session_id}/follow-up",
+                            f"/api/v1/tarot/session/{session_id}/follow-up",
                             headers=mock_auth_header,
                             json={
                                 "question": "Start fresh",
@@ -306,12 +306,12 @@ class TestTaroFollowUpRoutes:
         """Test follow-up with invalid type returns 400."""
         session_id = str(uuid4())
 
-        with patch("plugins.taro.src.routes.require_auth") as mock_require_auth:
-            with patch("plugins.taro.src.routes.current_user", mock_current_user):
+        with patch("plugins.tarot.src.routes.require_auth") as mock_require_auth:
+            with patch("plugins.tarot.src.routes.current_user", mock_current_user):
                 mock_require_auth.return_value = lambda f: f
 
                 response = client.post(
-                    f"/api/v1/taro/session/{session_id}/follow-up",
+                    f"/api/v1/tarot/session/{session_id}/follow-up",
                     headers=mock_auth_header,
                     json={
                         "question": "Ask something",
@@ -332,16 +332,16 @@ class TestTaroFollowUpRoutes:
         """Test follow-up with non-existent session returns 404."""
         session_id = str(uuid4())
 
-        with patch("plugins.taro.src.routes.require_auth") as mock_require_auth:
-            with patch("plugins.taro.src.routes.current_user", mock_current_user):
+        with patch("plugins.tarot.src.routes.require_auth") as mock_require_auth:
+            with patch("plugins.tarot.src.routes.current_user", mock_current_user):
                 with patch(
-                    "src.plugins.taro.routes.TaroSessionService.get_session",
+                    "src.plugins.tarot.routes.TarotSessionService.get_session",
                     return_value=None,
                 ):
                     mock_require_auth.return_value = lambda f: f
 
                     response = client.post(
-                        f"/api/v1/taro/session/{session_id}/follow-up",
+                        f"/api/v1/tarot/session/{session_id}/follow-up",
                         headers=mock_auth_header,
                         json={
                             "question": "Ask",
@@ -362,16 +362,16 @@ class TestTaroFollowUpRoutes:
         """Test follow-up on expired session returns 410."""
         session_id = str(uuid4())
 
-        with patch("plugins.taro.src.routes.require_auth") as mock_require_auth:
-            with patch("plugins.taro.src.routes.current_user", mock_current_user):
+        with patch("plugins.tarot.src.routes.require_auth") as mock_require_auth:
+            with patch("plugins.tarot.src.routes.current_user", mock_current_user):
                 with patch(
-                    "src.plugins.taro.routes.TaroSessionService.get_session",
+                    "src.plugins.tarot.routes.TarotSessionService.get_session",
                     return_value=Mock(id=session_id, status="EXPIRED"),
                 ):
                     mock_require_auth.return_value = lambda f: f
 
                     response = client.post(
-                        f"/api/v1/taro/session/{session_id}/follow-up",
+                        f"/api/v1/tarot/session/{session_id}/follow-up",
                         headers=mock_auth_header,
                         json={
                             "question": "Ask",
@@ -394,16 +394,16 @@ class TestTaroFollowUpRoutes:
         session_id = str(uuid4())
         mock_session = Mock(id=session_id, status="ACTIVE", follow_up_count=3)
 
-        with patch("plugins.taro.src.routes.require_auth") as mock_require_auth:
-            with patch("plugins.taro.src.routes.current_user", mock_current_user):
+        with patch("plugins.tarot.src.routes.require_auth") as mock_require_auth:
+            with patch("plugins.tarot.src.routes.current_user", mock_current_user):
                 with patch(
-                    "src.plugins.taro.routes.TaroSessionService.get_session",
+                    "src.plugins.tarot.routes.TarotSessionService.get_session",
                     return_value=mock_session,
                 ):
                     mock_require_auth.return_value = lambda f: f
 
                     response = client.post(
-                        f"/api/v1/taro/session/{session_id}/follow-up",
+                        f"/api/v1/tarot/session/{session_id}/follow-up",
                         headers=mock_auth_header,
                         json={
                             "question": "Ask",
@@ -424,20 +424,20 @@ class TestTaroFollowUpRoutes:
         """Test follow-up with insufficient tokens returns 402."""
         session_id = str(uuid4())
 
-        with patch("plugins.taro.src.routes.require_auth") as mock_require_auth:
-            with patch("plugins.taro.src.routes.current_user", mock_current_user):
+        with patch("plugins.tarot.src.routes.require_auth") as mock_require_auth:
+            with patch("plugins.tarot.src.routes.current_user", mock_current_user):
                 with patch(
-                    "src.plugins.taro.routes.TaroSessionService.get_session",
+                    "src.plugins.tarot.routes.TarotSessionService.get_session",
                     return_value=Mock(id=session_id, status="ACTIVE", follow_up_count=0),
                 ):
                     with patch(
-                        "src.plugins.taro.routes.check_token_balance",
+                        "src.plugins.tarot.routes.check_token_balance",
                         return_value=False,
                     ):
                         mock_require_auth.return_value = lambda f: f
 
                         response = client.post(
-                            f"/api/v1/taro/session/{session_id}/follow-up",
+                            f"/api/v1/tarot/session/{session_id}/follow-up",
                             headers=mock_auth_header,
                             json={
                                 "question": "Ask",
@@ -454,24 +454,24 @@ class TestTaroFollowUpRoutes:
         mock_current_user,
         mock_dispatcher,
     ):
-        """Test that follow-up emits TaroFollowUpRequestedEvent."""
+        """Test that follow-up emits TarotFollowUpRequestedEvent."""
         session_id = str(uuid4())
 
-        with patch("plugins.taro.src.routes.require_auth") as mock_require_auth:
-            with patch("plugins.taro.src.routes.current_user", mock_current_user):
-                with patch("plugins.taro.src.routes.dispatcher", mock_dispatcher):
+        with patch("plugins.tarot.src.routes.require_auth") as mock_require_auth:
+            with patch("plugins.tarot.src.routes.current_user", mock_current_user):
+                with patch("plugins.tarot.src.routes.dispatcher", mock_dispatcher):
                     with patch(
-                        "src.plugins.taro.routes.TaroSessionService.get_session",
+                        "src.plugins.tarot.routes.TarotSessionService.get_session",
                         return_value=Mock(id=session_id, status="ACTIVE", follow_up_count=0),
                     ):
                         with patch(
-                            "src.plugins.taro.routes.check_token_balance",
+                            "src.plugins.tarot.routes.check_token_balance",
                             return_value=True,
                         ):
                             mock_require_auth.return_value = lambda f: f
 
                             response = client.post(
-                                f"/api/v1/taro/session/{session_id}/follow-up",
+                                f"/api/v1/tarot/session/{session_id}/follow-up",
                                 headers=mock_auth_header,
                                 json={
                                     "question": "Ask something",
@@ -482,11 +482,11 @@ class TestTaroFollowUpRoutes:
                             assert response.status_code == 201
                             mock_dispatcher.emit.assert_called()
                             call_args = mock_dispatcher.emit.call_args
-                            assert isinstance(call_args[0][0], TaroFollowUpRequestedEvent)
+                            assert isinstance(call_args[0][0], TarotFollowUpRequestedEvent)
 
 
-class TestTaroHistoryRoutes:
-    """Test Taro session history routes."""
+class TestTarotHistoryRoutes:
+    """Test Tarot session history routes."""
 
     def test_get_history_success(
         self,
@@ -500,16 +500,16 @@ class TestTaroHistoryRoutes:
             Mock(id=str(uuid4()), created_at=datetime.utcnow()),
         ]
 
-        with patch("plugins.taro.src.routes.require_auth") as mock_require_auth:
-            with patch("plugins.taro.src.routes.current_user", mock_current_user):
+        with patch("plugins.tarot.src.routes.require_auth") as mock_require_auth:
+            with patch("plugins.tarot.src.routes.current_user", mock_current_user):
                 with patch(
-                    "src.plugins.taro.routes.TaroSessionService.get_user_sessions",
+                    "src.plugins.tarot.routes.TarotSessionService.get_user_sessions",
                     return_value=mock_sessions,
                 ):
                     mock_require_auth.return_value = lambda f: f
 
                     response = client.get(
-                        "/api/v1/taro/history",
+                        "/api/v1/tarot/history",
                         headers=mock_auth_header,
                     )
 
@@ -526,16 +526,16 @@ class TestTaroHistoryRoutes:
         mock_current_user,
     ):
         """Test retrieving empty session history."""
-        with patch("plugins.taro.src.routes.require_auth") as mock_require_auth:
-            with patch("plugins.taro.src.routes.current_user", mock_current_user):
+        with patch("plugins.tarot.src.routes.require_auth") as mock_require_auth:
+            with patch("plugins.tarot.src.routes.current_user", mock_current_user):
                 with patch(
-                    "src.plugins.taro.routes.TaroSessionService.get_user_sessions",
+                    "src.plugins.tarot.routes.TarotSessionService.get_user_sessions",
                     return_value=[],
                 ):
                     mock_require_auth.return_value = lambda f: f
 
                     response = client.get(
-                        "/api/v1/taro/history",
+                        "/api/v1/tarot/history",
                         headers=mock_auth_header,
                     )
 
@@ -561,16 +561,16 @@ class TestTaroHistoryRoutes:
         )
         mock_session.cards = [mock_card]
 
-        with patch("plugins.taro.src.routes.require_auth") as mock_require_auth:
-            with patch("plugins.taro.src.routes.current_user", mock_current_user):
+        with patch("plugins.tarot.src.routes.require_auth") as mock_require_auth:
+            with patch("plugins.tarot.src.routes.current_user", mock_current_user):
                 with patch(
-                    "src.plugins.taro.routes.TaroSessionService.get_user_sessions",
+                    "src.plugins.tarot.routes.TarotSessionService.get_user_sessions",
                     return_value=[mock_session],
                 ):
                     mock_require_auth.return_value = lambda f: f
 
                     response = client.get(
-                        "/api/v1/taro/history",
+                        "/api/v1/tarot/history",
                         headers=mock_auth_header,
                     )
 
@@ -591,16 +591,16 @@ class TestTaroHistoryRoutes:
         """Test history with pagination parameters."""
         mock_sessions = [Mock(id=str(uuid4())) for _ in range(5)]
 
-        with patch("plugins.taro.src.routes.require_auth") as mock_require_auth:
-            with patch("plugins.taro.src.routes.current_user", mock_current_user):
+        with patch("plugins.tarot.src.routes.require_auth") as mock_require_auth:
+            with patch("plugins.tarot.src.routes.current_user", mock_current_user):
                 with patch(
-                    "src.plugins.taro.routes.TaroSessionService.get_user_sessions",
+                    "src.plugins.tarot.routes.TarotSessionService.get_user_sessions",
                     return_value=mock_sessions[:3],
                 ):
                     mock_require_auth.return_value = lambda f: f
 
                     response = client.get(
-                        "/api/v1/taro/history?limit=3&offset=0",
+                        "/api/v1/tarot/history?limit=3&offset=0",
                         headers=mock_auth_header,
                     )
 
@@ -609,8 +609,8 @@ class TestTaroHistoryRoutes:
                     assert len(data["sessions"]) == 3
 
 
-class TestTaroLimitRoutes:
-    """Test Taro daily limit routes."""
+class TestTarotLimitRoutes:
+    """Test Tarot daily limit routes."""
 
     def test_get_limits_success(
         self,
@@ -619,16 +619,16 @@ class TestTaroLimitRoutes:
         mock_current_user,
     ):
         """Test retrieving daily limits successfully."""
-        with patch("plugins.taro.src.routes.require_auth") as mock_require_auth:
-            with patch("plugins.taro.src.routes.current_user", mock_current_user):
+        with patch("plugins.tarot.src.routes.require_auth") as mock_require_auth:
+            with patch("plugins.tarot.src.routes.current_user", mock_current_user):
                 with patch(
-                    "src.plugins.taro.routes.TaroSessionService.check_daily_limit",
+                    "src.plugins.tarot.routes.TarotSessionService.check_daily_limit",
                     return_value=(True, 2),
                 ):
                     mock_require_auth.return_value = lambda f: f
 
                     response = client.get(
-                        "/api/v1/taro/limits",
+                        "/api/v1/tarot/limits",
                         headers=mock_auth_header,
                     )
 
@@ -646,16 +646,16 @@ class TestTaroLimitRoutes:
         mock_current_user,
     ):
         """Test that limits include tarif plan information."""
-        with patch("plugins.taro.src.routes.require_auth") as mock_require_auth:
-            with patch("plugins.taro.src.routes.current_user", mock_current_user):
+        with patch("plugins.tarot.src.routes.require_auth") as mock_require_auth:
+            with patch("plugins.tarot.src.routes.current_user", mock_current_user):
                 with patch(
-                    "src.plugins.taro.routes.TaroSessionService.check_daily_limit",
+                    "src.plugins.tarot.routes.TarotSessionService.check_daily_limit",
                     return_value=(True, 2),
                 ):
                     mock_require_auth.return_value = lambda f: f
 
                     response = client.get(
-                        "/api/v1/taro/limits",
+                        "/api/v1/tarot/limits",
                         headers=mock_auth_header,
                     )
 
@@ -679,24 +679,24 @@ class TestTaroLimitRoutes:
             status="ACTIVE",
         )
 
-        with patch("plugins.taro.src.routes.require_auth") as mock_require_auth:
-            with patch("plugins.taro.src.routes.current_user", mock_current_user):
+        with patch("plugins.tarot.src.routes.require_auth") as mock_require_auth:
+            with patch("plugins.tarot.src.routes.current_user", mock_current_user):
                 with patch(
-                    "src.plugins.taro.routes.TaroSessionService.check_daily_limit",
+                    "src.plugins.tarot.routes.TarotSessionService.check_daily_limit",
                     return_value=(True, 2),
                 ):
                     with patch(
-                        "src.plugins.taro.routes.TaroSessionService.get_active_session",
+                        "src.plugins.tarot.routes.TarotSessionService.get_active_session",
                         return_value=mock_session,
                     ):
                         with patch(
-                            "src.plugins.taro.routes.TaroSessionService.has_expiry_warning",
+                            "src.plugins.tarot.routes.TarotSessionService.has_expiry_warning",
                             return_value=True,
                         ):
                             mock_require_auth.return_value = lambda f: f
 
                             response = client.get(
-                                "/api/v1/taro/limits",
+                                "/api/v1/tarot/limits",
                                 headers=mock_auth_header,
                             )
 

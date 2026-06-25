@@ -1,4 +1,4 @@
-# Taro Plugin
+# Tarot Plugin
 
 An AI-powered Tarot reading plugin for the VBWD SaaS platform. Users can create Tarot reading sessions with 3-card spreads (Past/Present/Future), receive AI-generated interpretations, and ask follow-up questions.
 
@@ -31,11 +31,11 @@ Database (PostgreSQL)
 
 **Models** (`/src/models/`)
 - `Arcana` - Tarot card definition (22 major arcana, 56 minor arcana)
-- `TaroSession` - User's reading session with status tracking
-- `TaroCardDraw` - Individual card within a session with AI interpretation
+- `TarotSession` - User's reading session with status tracking
+- `TarotCardDraw` - Individual card within a session with AI interpretation
 
 **Services** (`/src/services/`)
-- `TaroSessionService` - Business logic for creating/managing sessions
+- `TarotSessionService` - Business logic for creating/managing sessions
 - `ArcanaInterpretationService` - LLM integration for AI interpretations
 
 **Repositories** (`/src/repositories/`)
@@ -55,15 +55,15 @@ Database (PostgreSQL)
 
 #### 1. Create a Reading Session
 ```
-POST /api/v1/taro/session
+POST /api/v1/tarot/session
 ```
 
 **Flow:**
 1. Validate JWT token (authenticated user)
-2. Get user's subscription → fetch tarif plan → read `daily_taro_limit` from features
+2. Get user's subscription → fetch tarif plan → read `daily_tarot_limit` from features
 3. Check daily limit: `count_today_sessions() < daily_limit`
 4. Check token balance: user has ≥ 10 tokens
-5. Emit `TaroSessionRequestedEvent`
+5. Emit `TarotSessionRequestedEvent`
 6. Create ACTIVE session with 30-minute expiry
 7. Generate 3-card spread (PAST, PRESENT, FUTURE)
 8. Return session with cards and interpretations
@@ -91,21 +91,21 @@ POST /api/v1/taro/session
 
 #### 2. Ask Follow-Up Questions
 ```
-POST /api/v1/taro/session/<session_id>/follow-up
+POST /api/v1/tarot/session/<session_id>/follow-up
 ```
 
 **Flow:**
 1. Validate session ownership
 2. Check session not EXPIRED or CLOSED
-3. Check follow-up count < `max_taro_follow_ups` (from tarif plan)
+3. Check follow-up count < `max_tarot_follow_ups` (from tarif plan)
 4. Check token balance: ≥ 15 tokens
 5. Increment follow-up count
-6. Emit `TaroFollowUpRequestedEvent`
+6. Emit `TarotFollowUpRequestedEvent`
 7. Return follow-up response with AI interpretation
 
 #### 3. Check Daily Limits
 ```
-GET /api/v1/taro/limits
+GET /api/v1/tarot/limits
 ```
 
 Returns user's daily session limits and remaining quota:
@@ -126,17 +126,17 @@ Returns user's daily session limits and remaining quota:
 
 #### View User's Sessions
 ```
-GET /api/v1/taro/admin/users/<user_id>/sessions
+GET /api/v1/tarot/admin/users/<user_id>/sessions
 ```
 
-Admin can see a specific user's Taro session info, including:
+Admin can see a specific user's Tarot session info, including:
 - Total daily limit (from their tarif plan)
 - Currently used sessions (only counting ACTIVE sessions)
 - Remaining quota available
 
 #### Reset User's Sessions
 ```
-POST /api/v1/taro/admin/users/<user_id>/reset-sessions
+POST /api/v1/tarot/admin/users/<user_id>/reset-sessions
 ```
 
 **Flow:**
@@ -156,7 +156,7 @@ POST /api/v1/taro/admin/users/<user_id>/reset-sessions
 ### Overview
 Daily limits are **not hardcoded** in the plugin. Instead, they're configured in the **tarif plan features** JSON field.
 
-This allows different subscription tiers to have different Taro session limits:
+This allows different subscription tiers to have different Tarot session limits:
 - **Free Plan**: 1 reading per day
 - **Basic Plan**: 3 readings per day
 - **Pro Plan**: 10 readings per day
@@ -172,8 +172,8 @@ Set the features JSON:
 ```json
 {
   "features": {
-    "daily_taro_limit": 3,
-    "max_taro_follow_ups": 3
+    "daily_tarot_limit": 3,
+    "max_tarot_follow_ups": 3
   }
 }
 ```
@@ -181,19 +181,19 @@ Set the features JSON:
 #### 2. Via Database
 ```sql
 UPDATE tarif_plan
-SET features = jsonb_set(features, '{daily_taro_limit}', '3')
+SET features = jsonb_set(features, '{daily_tarot_limit}', '3')
 WHERE id = 'plan-uuid';
 ```
 
 #### 3. Default Values
 If a tarif plan doesn't have these features configured, defaults are used:
-- `daily_taro_limit` = 3
-- `max_taro_follow_ups` = 3
+- `daily_tarot_limit` = 3
+- `max_tarot_follow_ups` = 3
 
 ### Configuration Flow
 
 ```
-User requests /api/v1/taro/session
+User requests /api/v1/tarot/session
   ↓
 get_user_tarif_plan_limits(user_id)
   ↓
@@ -201,7 +201,7 @@ Fetch Subscription where user_id and status = ACTIVE
   ↓
 Get subscription.tarif_plan
   ↓
-Read features["daily_taro_limit"] and features["max_taro_follow_ups"]
+Read features["daily_tarot_limit"] and features["max_tarot_follow_ups"]
   ↓
 Use values (or defaults if not configured)
   ↓
@@ -213,16 +213,16 @@ Enforce limits
 **Free Plan (features column):**
 ```json
 {
-  "daily_taro_limit": 1,
-  "max_taro_follow_ups": 1
+  "daily_tarot_limit": 1,
+  "max_tarot_follow_ups": 1
 }
 ```
 
 **Pro Plan (features column):**
 ```json
 {
-  "daily_taro_limit": 10,
-  "max_taro_follow_ups": 5,
+  "daily_tarot_limit": 10,
+  "max_tarot_follow_ups": 5,
   "advanced_interpretations": true
 }
 ```
@@ -248,7 +248,7 @@ reversed_meaning| TEXT    | Interpretation when reversed
 image_url       | STRING  | Path to SVG asset
 ```
 
-### TaroSession
+### TarotSession
 Represents a user's reading session.
 
 ```
@@ -266,14 +266,14 @@ follow_up_count | INT     | Number of follow-ups asked
 max_follow_ups  | INT     | Limit for this session
 ```
 
-### TaroCardDraw
+### TarotCardDraw
 Represents a single card within a session.
 
 ```
 Column          | Type    | Description
 ----------------|---------|-------------------------------------------
 id              | UUID    | Primary key
-session_id      | UUID    | FK to TaroSession
+session_id      | UUID    | FK to TarotSession
 arcana_id       | UUID    | FK to Arcana
 position        | STRING  | PAST, PRESENT, FUTURE
 orientation     | STRING  | UPRIGHT or REVERSED
@@ -288,8 +288,8 @@ ai_interpretation|TEXT    | LLM-generated interpretation
 
 1. **User has subscription** (status = ACTIVE):
    - Get subscription.tarif_plan
-   - Read daily_taro_limit from plan.features
-   - Compare: `active_sessions_today < daily_taro_limit`
+   - Read daily_tarot_limit from plan.features
+   - Compare: `active_sessions_today < daily_tarot_limit`
 
 2. **User has no subscription**:
    - Use default: 3 readings per day
@@ -332,18 +332,18 @@ def count_today_sessions(user_id: str) -> int:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/v1/taro/session` | Create new reading session |
-| POST | `/api/v1/taro/session/<id>/follow-up` | Ask follow-up question |
-| GET | `/api/v1/taro/history` | Get session history |
-| GET | `/api/v1/taro/limits` | Get daily limits and usage |
-| GET | `/api/v1/taro/assets/arcana/<file>` | Serve card SVG assets |
+| POST | `/api/v1/tarot/session` | Create new reading session |
+| POST | `/api/v1/tarot/session/<id>/follow-up` | Ask follow-up question |
+| GET | `/api/v1/tarot/history` | Get session history |
+| GET | `/api/v1/tarot/limits` | Get daily limits and usage |
+| GET | `/api/v1/tarot/assets/arcana/<file>` | Serve card SVG assets |
 
 ### Admin Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/taro/admin/users/<user_id>/sessions` | View user's session info |
-| POST | `/api/v1/taro/admin/users/<user_id>/reset-sessions` | Reset user's daily quota |
+| GET | `/api/v1/tarot/admin/users/<user_id>/sessions` | View user's session info |
+| POST | `/api/v1/tarot/admin/users/<user_id>/reset-sessions` | Reset user's daily quota |
 
 ### Error Responses
 
@@ -380,13 +380,13 @@ def count_today_sessions(user_id: str) -> int:
 
 ```bash
 # Unit tests only
-docker compose exec api pytest plugins/taro/tests/unit/ -v
+docker compose exec api pytest plugins/tarot/tests/unit/ -v
 
 # Test specific service
-docker compose exec api pytest plugins/taro/tests/unit/services/test_taro_session_service.py -v
+docker compose exec api pytest plugins/tarot/tests/unit/services/test_tarot_session_service.py -v
 
 # Test with coverage
-docker compose exec api pytest plugins/taro/tests/unit/ --cov=plugins/taro/src
+docker compose exec api pytest plugins/tarot/tests/unit/ --cov=plugins/tarot/src
 ```
 
 ### Key Test Cases
@@ -403,13 +403,13 @@ docker compose exec api pytest plugins/taro/tests/unit/ --cov=plugins/taro/src
 
 Follow TDD approach:
 ```python
-def test_feature_name(self, taro_service, sample_arcanas, db):
+def test_feature_name(self, tarot_service, sample_arcanas, db):
     """Test description."""
     # Arrange
     user_id = str(uuid4())
 
     # Act
-    result = taro_service.some_method(user_id)
+    result = tarot_service.some_method(user_id)
 
     # Assert
     assert result.expected_field == expected_value
@@ -427,7 +427,7 @@ def test_feature_name(self, taro_service, sample_arcanas, db):
 **Solution:** Update counting to only include ACTIVE sessions
 ```python
 # Only count ACTIVE sessions
-if session.status == TaroSessionStatus.ACTIVE.value
+if session.status == TarotSessionStatus.ACTIVE.value
 ```
 
 ### Sessions Showing Wrong Limits
@@ -438,8 +438,8 @@ if session.status == TaroSessionStatus.ACTIVE.value
 **Solution:** Configure tarif plan features JSON:
 ```json
 {
-  "daily_taro_limit": 3,
-  "max_taro_follow_ups": 3
+  "daily_tarot_limit": 3,
+  "max_tarot_follow_ups": 3
 }
 ```
 
@@ -450,7 +450,7 @@ if session.status == TaroSessionStatus.ACTIVE.value
 
 **Solution:** Check assets exist:
 ```bash
-ls plugins/taro/assets/arcana/
+ls plugins/tarot/assets/arcana/
 ```
 
 ---
@@ -498,7 +498,7 @@ This plugin is part of VBWD SDK. See main LICENSE for details.
 
 | | Repository |
 |-|------------|
-| 👤 Frontend (user) | [vbwd-fe-user-plugin-taro](https://github.com/VBWD-platform/vbwd-fe-user-plugin-taro) |
-| 🛠 Frontend (admin) | [vbwd-fe-admin-plugin-taro](https://github.com/VBWD-platform/vbwd-fe-admin-plugin-taro) |
+| 👤 Frontend (user) | [vbwd-fe-user-plugin-tarot](https://github.com/VBWD-platform/vbwd-fe-user-plugin-tarot) |
+| 🛠 Frontend (admin) | [vbwd-fe-admin-plugin-tarot](https://github.com/VBWD-platform/vbwd-fe-admin-plugin-tarot) |
 
 **Core:** [vbwd-backend](https://github.com/VBWD-platform/vbwd-backend)

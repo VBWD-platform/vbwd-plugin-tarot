@@ -1,15 +1,15 @@
 """Tests for ArcanaInterpretationService."""
 import pytest
 from unittest.mock import Mock
-from plugins.taro.src.services.arcana_interpretation_service import (
+from plugins.tarot.src.services.arcana_interpretation_service import (
     ArcanaInterpretationService,
 )
-from plugins.taro.src.repositories.taro_card_draw_repository import (
-    TaroCardDrawRepository,
+from plugins.tarot.src.repositories.tarot_card_draw_repository import (
+    TarotCardDrawRepository,
 )
-from plugins.taro.src.models.taro_card_draw import TaroCardDraw
-from plugins.taro.src.models.arcana import Arcana
-from plugins.taro.src.enums import ArcanaType, CardPosition, CardOrientation
+from plugins.tarot.src.models.tarot_card_draw import TarotCardDraw
+from plugins.tarot.src.models.arcana import Arcana
+from plugins.tarot.src.enums import ArcanaType, CardPosition, CardOrientation
 
 
 @pytest.fixture
@@ -24,7 +24,7 @@ def interpretation_service(mock_llm_client):
     """Fixture providing ArcanaInterpretationService instance."""
     service = ArcanaInterpretationService(
         llm_client=mock_llm_client,
-        card_draw_repo=Mock(spec=TaroCardDrawRepository),
+        card_draw_repo=Mock(spec=TarotCardDrawRepository),
     )
     return service
 
@@ -105,9 +105,9 @@ class TestArcanaInterpretationService:
         db.session.add(sample_arcana)
         db.session.flush()
         # Create cards
-        from plugins.taro.src.models.taro_session import TaroSession
+        from plugins.tarot.src.models.tarot_session import TarotSession
 
-        session = TaroSession(
+        session = TarotSession(
             user_id=str(uuid4()),
             started_at=__import__("datetime").datetime.utcnow(),
             expires_at=__import__("datetime").datetime.utcnow()
@@ -119,7 +119,7 @@ class TestArcanaInterpretationService:
 
         cards = []
         for pos in [CardPosition.PAST, CardPosition.PRESENT, CardPosition.FUTURE]:
-            card = TaroCardDraw(
+            card = TarotCardDraw(
                 session_id=str(session.id),
                 arcana_id=str(sample_arcana.id),
                 position=pos.value,
@@ -215,17 +215,17 @@ class TestArcanaInterpretationService:
     ):
         """Test updating card's interpretation after generation."""
         from uuid import uuid4
-        from plugins.taro.src.repositories.taro_card_draw_repository import (
-            TaroCardDrawRepository,
+        from plugins.tarot.src.repositories.tarot_card_draw_repository import (
+            TarotCardDrawRepository,
         )
 
         # Persist arcana so FK constraint is satisfied
         db.session.add(sample_arcana)
         db.session.flush()
         # Create card
-        from plugins.taro.src.models.taro_session import TaroSession
+        from plugins.tarot.src.models.tarot_session import TarotSession
 
-        session = TaroSession(
+        session = TarotSession(
             user_id=str(uuid4()),
             started_at=__import__("datetime").datetime.utcnow(),
             expires_at=__import__("datetime").datetime.utcnow()
@@ -235,7 +235,7 @@ class TestArcanaInterpretationService:
         db.session.add(session)
         db.session.commit()
 
-        card = TaroCardDraw(
+        card = TarotCardDraw(
             session_id=str(session.id),
             arcana_id=str(sample_arcana.id),
             position=CardPosition.PAST.value,
@@ -246,7 +246,7 @@ class TestArcanaInterpretationService:
         db.session.commit()
 
         # Use a real repo backed by db so update and get_by_id work against actual data
-        real_repo = TaroCardDrawRepository(db.session)
+        real_repo = TarotCardDrawRepository(db.session)
         interpretation_service.card_draw_repo = real_repo
 
         new_interpretation = "New, improved interpretation"
@@ -293,7 +293,7 @@ class TestArcanaInterpretationService:
         """Test that service can be configured with different LLM models."""
         service = ArcanaInterpretationService(
             llm_client=mock_llm_client,
-            card_draw_repo=Mock(spec=TaroCardDrawRepository),
+            card_draw_repo=Mock(spec=TarotCardDrawRepository),
             model_name="gpt-4",
             temperature=0.7,
             max_tokens=500,

@@ -1,4 +1,4 @@
-"""TaroSessionService - business logic for Taro sessions."""
+"""TarotSessionService - business logic for Tarot sessions."""
 from dataclasses import dataclass
 from typing import Optional, Tuple, List
 from datetime import timedelta
@@ -9,20 +9,22 @@ from random import randint
 import os
 import logging
 import json
-from plugins.taro.src.models.taro_session import TaroSession
-from plugins.taro.src.models.taro_card_draw import TaroCardDraw
-from plugins.taro.src.repositories.arcana_repository import ArcanaRepository
-from plugins.taro.src.repositories.taro_session_repository import TaroSessionRepository
-from plugins.taro.src.repositories.taro_card_draw_repository import (
-    TaroCardDrawRepository,
+from plugins.tarot.src.models.tarot_session import TarotSession
+from plugins.tarot.src.models.tarot_card_draw import TarotCardDraw
+from plugins.tarot.src.repositories.arcana_repository import ArcanaRepository
+from plugins.tarot.src.repositories.tarot_session_repository import (
+    TarotSessionRepository,
 )
-from plugins.taro.src.enums import TaroSessionStatus, CardPosition, CardOrientation
-from plugins.taro.src.services.prompt_service import PromptService
+from plugins.tarot.src.repositories.tarot_card_draw_repository import (
+    TarotCardDrawRepository,
+)
+from plugins.tarot.src.enums import TarotSessionStatus, CardPosition, CardOrientation
+from plugins.tarot.src.services.prompt_service import PromptService
 
 logger = logging.getLogger(__name__)
 
-# taro's stable LLM-failure type. Since S97.5 the actual LLM call routes through
-# the CORE client (``vbwd.llm``); taro re-exposes its failure under this name so
+# tarot's stable LLM-failure type. Since S97.5 the actual LLM call routes through
+# the CORE client (``vbwd.llm``); tarot re-exposes its failure under this name so
 # the service + routes keep one error type to catch (no cross-plugin import).
 LLMError = LlmError
 
@@ -30,10 +32,10 @@ LLMError = LlmError
 class CoreClientChatAdapter:
     """Thin ``.chat(messages=…)`` adapter over the CORE LLM client (S97.5).
 
-    taro's reading flow calls ``self.llm_adapter.chat(messages=…)`` with a
+    tarot's reading flow calls ``self.llm_adapter.chat(messages=…)`` with a
     per-plugin system prompt baked in at construction. The core client takes the
     system prompt per call, so this adapter binds it once and threads it through.
-    A core :class:`LlmError` surfaces as taro's :class:`LLMError` so the existing
+    A core :class:`LlmError` surfaces as tarot's :class:`LLMError` so the existing
     caller contract (and its ``except LLMError``) is preserved.
     """
 
@@ -62,9 +64,9 @@ SINGLE_CARD_POSITION = CardPosition.PRESENT
 class FreeReadingCard:
     """An interpreted card from an anonymous, free (non-persisted) reading.
 
-    Produced by :meth:`TaroSessionService.draw_free_reading` for the taro bot
+    Produced by :meth:`TarotSessionService.draw_free_reading` for the tarot bot
     consumer (S45.3). It carries no session/user/token state: a free reading is
-    never written to the database and never bills tokens — taro-over-bot is a
+    never written to the database and never bills tokens — tarot-over-bot is a
     free teaser, paid readings stay web-only.
     """
 
@@ -74,8 +76,8 @@ class FreeReadingCard:
     interpretation: str
 
 
-class TaroSessionService:
-    """Service for managing Taro sessions with business logic."""
+class TarotSessionService:
+    """Service for managing Tarot sessions with business logic."""
 
     # Token consumption costs
     SESSION_BASE_TOKENS = 10  # Fixed cost per session creation
@@ -86,8 +88,8 @@ class TaroSessionService:
     def __init__(
         self,
         arcana_repo: ArcanaRepository,
-        session_repo: TaroSessionRepository,
-        card_draw_repo: TaroCardDrawRepository,
+        session_repo: TarotSessionRepository,
+        card_draw_repo: TarotCardDrawRepository,
         llm_adapter: Optional["CoreClientChatAdapter"] = None,
         prompt_service: Optional[PromptService] = None,
     ):
@@ -110,7 +112,7 @@ class TaroSessionService:
     def _initialize_llm_adapter() -> Optional["CoreClientChatAdapter"]:
         """Resolve the chat adapter from the CORE LLM connection (S97.5).
 
-        taro keeps only the optional ``llm_connection_slug`` (empty ⇒ the active
+        tarot keeps only the optional ``llm_connection_slug`` (empty ⇒ the active
         default connection); the model/endpoint/key live in the central LLM
         connection. When no active connection can be resolved (or no app context
         is available) the adapter stays ``None`` and the reading flow degrades to
@@ -119,9 +121,9 @@ class TaroSessionService:
         try:
             from flask import current_app
 
-            taro_config = TaroSessionService._read_plugin_config()
-            slug = taro_config.get("llm_connection_slug") or None
-            system_prompt = taro_config.get(
+            tarot_config = TarotSessionService._read_plugin_config()
+            slug = tarot_config.get("llm_connection_slug") or None
+            system_prompt = tarot_config.get(
                 "system_prompt",
                 "You are an expert Tarot card reader providing mystical insights.",
             )
@@ -132,7 +134,7 @@ class TaroSessionService:
             return CoreClientChatAdapter(llm_client, system_prompt=system_prompt)
         except Exception as initialization_error:
             logger.warning(
-                "No active LLM connection for taro (%s). "
+                "No active LLM connection for tarot (%s). "
                 "Card interpretations will use fallback meanings.",
                 initialization_error,
             )
@@ -140,7 +142,7 @@ class TaroSessionService:
 
     @staticmethod
     def _read_plugin_config() -> dict:
-        """Read the taro section of the runtime plugin config (best effort)."""
+        """Read the tarot section of the runtime plugin config (best effort)."""
         plugins_dir = os.path.dirname(
             os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         )
@@ -149,7 +151,7 @@ class TaroSessionService:
             return {}
         with open(config_path, "r") as config_file:
             config_data = json.load(config_file)
-        return config_data.get("taro", {})
+        return config_data.get("tarot", {})
 
     @staticmethod
     def _initialize_prompt_service() -> Optional[PromptService]:
@@ -182,17 +184,17 @@ class TaroSessionService:
             with open(config_path, "r") as f:
                 config_data = json.load(f)
 
-            taro_config = config_data.get("taro", {})
+            tarot_config = config_data.get("tarot", {})
 
             # Reconstruct prompts from flat config structure
             # Note: Temperature and max_tokens use global LLM settings (llm_temperature, llm_max_tokens)
             prompts_data = {
                 "system_prompt": {
-                    "template": taro_config.get("system_prompt", ""),
+                    "template": tarot_config.get("system_prompt", ""),
                     "variables": [],
                 },
                 "card_interpretation": {
-                    "template": taro_config.get("card_interpretation_template", ""),
+                    "template": tarot_config.get("card_interpretation_template", ""),
                     "variables": [
                         "card_name",
                         "orientation",
@@ -202,19 +204,19 @@ class TaroSessionService:
                     ],
                 },
                 "situation_reading": {
-                    "template": taro_config.get("situation_reading_template", ""),
+                    "template": tarot_config.get("situation_reading_template", ""),
                     "variables": ["situation_text", "cards_context"],
                 },
                 "card_explanation": {
-                    "template": taro_config.get("card_explanation_template", ""),
+                    "template": tarot_config.get("card_explanation_template", ""),
                     "variables": ["cards_context"],
                 },
                 "follow_up_question": {
-                    "template": taro_config.get("follow_up_question_template", ""),
+                    "template": tarot_config.get("follow_up_question_template", ""),
                     "variables": ["cards_context", "question"],
                 },
                 "initial_greeting": {
-                    "template": taro_config.get("initial_greeting", ""),
+                    "template": tarot_config.get("initial_greeting", ""),
                     "variables": [],
                 },
             }
@@ -234,8 +236,8 @@ class TaroSessionService:
         daily_limit: int = 3,
         max_follow_ups: int = 3,
         session_tokens: int = SESSION_BASE_TOKENS,
-    ) -> Optional[TaroSession]:
-        """Create new Taro session with 3-card spread.
+    ) -> Optional[TarotSession]:
+        """Create new Tarot session with 3-card spread.
 
         Args:
             user_id: User creating session
@@ -244,7 +246,7 @@ class TaroSessionService:
             session_tokens: Tokens to consume for this session
 
         Returns:
-            TaroSession if created, None if daily limit exceeded
+            TarotSession if created, None if daily limit exceeded
         """
         # Check daily limit
         allowed, _ = self.check_daily_limit(user_id, daily_limit)
@@ -255,7 +257,7 @@ class TaroSessionService:
         now = utcnow()
         session = self.session_repo.create(
             user_id=user_id,
-            status=TaroSessionStatus.ACTIVE.value,
+            status=TarotSessionStatus.ACTIVE.value,
             started_at=now,
             expires_at=now + timedelta(minutes=30),  # 30-minute session
             spread_id=f"spread-{uuid4()}",
@@ -269,14 +271,14 @@ class TaroSessionService:
 
         return session
 
-    def _generate_spread(self, session: TaroSession) -> List[TaroCardDraw]:
+    def _generate_spread(self, session: TarotSession) -> List[TarotCardDraw]:
         """Generate 3-card spread (PAST, PRESENT, FUTURE) for session.
 
         Args:
-            session: TaroSession to generate spread for
+            session: TarotSession to generate spread for
 
         Returns:
-            List of 3 TaroCardDraw cards with interpretations
+            List of 3 TarotCardDraw cards with interpretations
         """
         # Get 3 random Arcanas
         arcanas = self.arcana_repo.get_random(count=3)
@@ -381,11 +383,11 @@ class TaroSessionService:
     def draw_free_reading(self, card_count: int = 1) -> List["FreeReadingCard"]:
         """Produce an anonymous, free reading with no persistence and no billing.
 
-        Reuses taro's existing reading primitives — random Arcana selection
+        Reuses tarot's existing reading primitives — random Arcana selection
         (:meth:`ArcanaRepository.get_random`), the 70/30 upright/reversed roll,
         and the per-card interpretation (:meth:`_generate_card_interpretation`,
-        the same logic the web spread uses) — but writes **no** ``TaroSession``
-        or ``TaroCardDraw`` row and debits **no** tokens. This backs the taro
+        the same logic the web spread uses) — but writes **no** ``TarotSession``
+        or ``TarotCardDraw`` row and debits **no** tokens. This backs the tarot
         bot consumer (S45.3): a free teaser available to any sender, linked or
         not. Paid readings stay on the web ``create_session`` path.
 
@@ -424,21 +426,21 @@ class TaroSessionService:
 
         return cards
 
-    def get_session(self, session_id: str) -> Optional[TaroSession]:
+    def get_session(self, session_id: str) -> Optional[TarotSession]:
         """Get session by ID."""
         return self.session_repo.get_by_id(session_id)
 
-    def get_user_active_session(self, user_id: str) -> Optional[TaroSession]:
+    def get_user_active_session(self, user_id: str) -> Optional[TarotSession]:
         """Get user's current active session."""
         return self.session_repo.get_active_session(user_id)
 
-    def get_session_spread(self, session_id: str) -> List[TaroCardDraw]:
+    def get_session_spread(self, session_id: str) -> List[TarotCardDraw]:
         """Get 3-card spread for session."""
         return self.card_draw_repo.get_session_cards(session_id)
 
     def get_user_session_history(
         self, user_id: str, limit: int = 10
-    ) -> List[TaroSession]:
+    ) -> List[TarotSession]:
         """Get user's session history (for revisiting past readings)."""
         sessions = self.session_repo.get_user_sessions(user_id)
         return sessions[:limit]
@@ -456,7 +458,7 @@ class TaroSessionService:
             1
             for s in sessions
             if s.started_at.date() == today
-            and s.status == TaroSessionStatus.ACTIVE.value
+            and s.status == TarotSessionStatus.ACTIVE.value
         )
 
         return today_count
@@ -480,16 +482,16 @@ class TaroSessionService:
 
         return (remaining > 0, remaining)
 
-    def is_session_expired(self, session: TaroSession) -> bool:
+    def is_session_expired(self, session: TarotSession) -> bool:
         """Check if session has expired."""
-        if session.status != TaroSessionStatus.ACTIVE.value:
+        if session.status != TarotSessionStatus.ACTIVE.value:
             return False
 
         return utcnow() > session.expires_at
 
-    def has_expiry_warning(self, session: TaroSession) -> bool:
+    def has_expiry_warning(self, session: TarotSession) -> bool:
         """Check if session should show 3-minute expiry warning."""
-        if session.status != TaroSessionStatus.ACTIVE.value:
+        if session.status != TarotSessionStatus.ACTIVE.value:
             return False
 
         now = utcnow()
@@ -498,7 +500,7 @@ class TaroSessionService:
         # Warning when 3 minutes or less remain
         return 0 < time_until_expiry <= 180
 
-    def add_follow_up(self, session_id: str) -> Optional[TaroSession]:
+    def add_follow_up(self, session_id: str) -> Optional[TarotSession]:
         """Add follow-up question to session.
 
         Args:
@@ -554,7 +556,7 @@ class TaroSessionService:
         """
         return self.session_repo.update_status(
             session_id,
-            TaroSessionStatus.CLOSED,
+            TarotSessionStatus.CLOSED,
             ended_at=utcnow(),
         )
 
@@ -569,9 +571,9 @@ class TaroSessionService:
 
         count = 0
         for session in expired_sessions:
-            if session.status == TaroSessionStatus.ACTIVE.value:
+            if session.status == TarotSessionStatus.ACTIVE.value:
                 self.session_repo.update_status(
-                    str(session.id), TaroSessionStatus.EXPIRED
+                    str(session.id), TarotSessionStatus.EXPIRED
                 )
                 count += 1
 
@@ -591,7 +593,7 @@ class TaroSessionService:
 
     def get_user_sessions(
         self, user_id: str, limit: int = 10, offset: int = 0
-    ) -> List[TaroSession]:
+    ) -> List[TarotSession]:
         """Get user's sessions with pagination support.
 
         Args:
@@ -616,7 +618,7 @@ class TaroSessionService:
         """
         return self.session_repo.count_user_sessions(user_id)
 
-    def get_active_session(self, user_id: str) -> Optional[TaroSession]:
+    def get_active_session(self, user_id: str) -> Optional[TarotSession]:
         """Get user's active session.
 
         Args:
@@ -646,12 +648,12 @@ class TaroSessionService:
         for session in sessions:
             # Only close ACTIVE sessions created today
             if (
-                session.status == TaroSessionStatus.ACTIVE.value
+                session.status == TarotSessionStatus.ACTIVE.value
                 and session.started_at.date() == today
             ):
                 self.session_repo.update_status(
                     str(session.id),
-                    TaroSessionStatus.CLOSED,
+                    TarotSessionStatus.CLOSED,
                     ended_at=utcnow(),
                 )
                 closed_count += 1
@@ -738,11 +740,11 @@ class TaroSessionService:
             logger.error(f"Unexpected error generating situation reading: {e}")
             raise LLMError(f"Failed to generate situation reading: {str(e)}")
 
-    def _build_cards_context(self, cards: List[TaroCardDraw]) -> str:
+    def _build_cards_context(self, cards: List[TarotCardDraw]) -> str:
         """Build a context string describing the cards in the spread.
 
         Args:
-            cards: List of 3 TaroCardDraw cards
+            cards: List of 3 TarotCardDraw cards
 
         Returns:
             Formatted string describing the cards

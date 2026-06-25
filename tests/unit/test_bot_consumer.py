@@ -1,19 +1,19 @@
-"""Unit tests for the taro bot-consumer seam (S45.3).
+"""Unit tests for the tarot bot-consumer seam (S45.3).
 
-``taro`` is the *second* independent consumer on the S45 bridge (proving the
+``tarot`` is the *second* independent consumer on the S45 bridge (proving the
 seam serves more than one plugin). It structurally implements
-``BotCommandProvider`` (bot_namespace="taro") so its commands light up over
+``BotCommandProvider`` (bot_namespace="tarot") so its commands light up over
 every bot adapter unchanged. The bridge is **optional**: the bot methods lazily
-import bot-base's neutral DTOs inside the method body, so ``taro`` imports
+import bot-base's neutral DTOs inside the method body, so ``tarot`` imports
 cleanly even when bot-base is absent (no hard dependency).
 
-Engineering requirements (BINDING): TDD-first · SOLID · DI · DRY (reuse taro's
+Engineering requirements (BINDING): TDD-first · SOLID · DI · DRY (reuse tarot's
 existing reading service — no new reading logic) · NO OVERENGINEERING · full
-readable names · no core change · bridge optional · **no billing on any taro
-bot command**. Gate: ``bin/pre-commit-check.sh --plugin taro --full`` green.
+readable names · no core change · bridge optional · **no billing on any tarot
+bot command**. Gate: ``bin/pre-commit-check.sh --plugin tarot --full`` green.
 
-All taro bot commands are FREE + ANONYMOUS — no link required, no token debit,
-no identity mutation. taro-over-bot is a free teaser; paid readings stay
+All tarot bot commands are FREE + ANONYMOUS — no link required, no token debit,
+no identity mutation. tarot-over-bot is a free teaser; paid readings stay
 web-only.
 """
 import sys
@@ -26,8 +26,8 @@ from plugins.bot_base.bot_base.ports import BotCommandProvider
 from plugins.bot_base.bot_base.services.command_registry import CommandRegistry
 from plugins.bot_base.bot_base.types import BotIdentity, BotInbound, BotReply, ChatRef
 from plugins.bot_base.tests.unit.fakes import FakePluginManager
-from plugins.taro import TaroPlugin
-from plugins.taro.src.services.taro_session_service import FreeReadingCard
+from plugins.tarot import TarotPlugin
+from plugins.tarot.src.services.tarot_session_service import FreeReadingCard
 
 
 def _make_inbound(
@@ -64,30 +64,30 @@ def _fake_card(name="The Star", position="PRESENT"):
 
 
 @pytest.fixture
-def enabled_taro_plugin():
-    """A TaroPlugin initialized with bot_enabled=True."""
-    plugin = TaroPlugin()
+def enabled_tarot_plugin():
+    """A TarotPlugin initialized with bot_enabled=True."""
+    plugin = TarotPlugin()
     plugin.initialize({"bot_enabled": True})
     return plugin
 
 
 # ── D1 inversion: collected only when bot_enabled=True ───────────────────────
 class TestCommandRegistryCollection:
-    def test_plugin_structurally_implements_provider_seam(self, enabled_taro_plugin):
-        assert isinstance(enabled_taro_plugin, BotCommandProvider)
+    def test_plugin_structurally_implements_provider_seam(self, enabled_tarot_plugin):
+        assert isinstance(enabled_tarot_plugin, BotCommandProvider)
 
-    def test_registry_collects_taro_commands_when_bot_enabled(
-        self, enabled_taro_plugin
+    def test_registry_collects_tarot_commands_when_bot_enabled(
+        self, enabled_tarot_plugin
     ):
-        registry = CommandRegistry(FakePluginManager([enabled_taro_plugin]))
+        registry = CommandRegistry(FakePluginManager([enabled_tarot_plugin]))
 
-        assert enabled_taro_plugin in registry.get_command_providers()
+        assert enabled_tarot_plugin in registry.get_command_providers()
         index = registry.command_index()
-        assert index["draw"] is enabled_taro_plugin
-        assert index["reading"] is enabled_taro_plugin
+        assert index["draw"] is enabled_tarot_plugin
+        assert index["reading"] is enabled_tarot_plugin
 
-    def test_registry_surfaces_no_taro_command_when_bot_disabled(self):
-        plugin = TaroPlugin()
+    def test_registry_surfaces_no_tarot_command_when_bot_disabled(self):
+        plugin = TarotPlugin()
         plugin.initialize({"bot_enabled": False})
         registry = CommandRegistry(FakePluginManager([plugin]))
 
@@ -96,35 +96,35 @@ class TestCommandRegistryCollection:
         assert plugin.get_bot_commands() == []
 
     def test_bot_disabled_is_the_default(self):
-        plugin = TaroPlugin()
+        plugin = TarotPlugin()
         plugin.initialize({})
 
         assert plugin.get_bot_commands() == []
 
 
-# ── /draw + /reading expose taro's own namespace ─────────────────────────────
-class TestTaroCommandsExposed:
-    def test_exposes_draw_and_reading_commands(self, enabled_taro_plugin):
-        commands = enabled_taro_plugin.get_bot_commands()
+# ── /draw + /reading expose tarot's own namespace ─────────────────────────────
+class TestTarotCommandsExposed:
+    def test_exposes_draw_and_reading_commands(self, enabled_tarot_plugin):
+        commands = enabled_tarot_plugin.get_bot_commands()
 
         names = sorted(command.name for command in commands)
         assert names == ["draw", "reading"]
-        assert {command.namespace for command in commands} == {"taro"}
+        assert {command.namespace for command in commands} == {"tarot"}
 
 
 # ── /draw (anonymous, free) → reading via existing service ───────────────────
 class TestDrawCommandAnonymousFree:
     def test_draw_returns_reading_reply_for_unlinked_sender(
-        self, enabled_taro_plugin, monkeypatch
+        self, enabled_tarot_plugin, monkeypatch
     ):
         fake_service = MagicMock()
         fake_service.draw_free_reading.return_value = [_fake_card("The Sun")]
         monkeypatch.setattr(
-            enabled_taro_plugin, "_build_reading_service", lambda: fake_service
+            enabled_tarot_plugin, "_build_reading_service", lambda: fake_service
         )
 
         # identity=None → unlinked / anonymous sender, NO link required.
-        reply = enabled_taro_plugin.handle_action(
+        reply = enabled_tarot_plugin.handle_action(
             _make_inbound(command="draw", identity=None)
         )
 
@@ -132,7 +132,7 @@ class TestDrawCommandAnonymousFree:
         assert "The Sun" in reply.text
         fake_service.draw_free_reading.assert_called_once_with(card_count=1)
 
-    def test_reading_returns_full_spread_reply(self, enabled_taro_plugin, monkeypatch):
+    def test_reading_returns_full_spread_reply(self, enabled_tarot_plugin, monkeypatch):
         fake_service = MagicMock()
         fake_service.draw_free_reading.return_value = [
             _fake_card("Past", "PAST"),
@@ -140,10 +140,10 @@ class TestDrawCommandAnonymousFree:
             _fake_card("Future", "FUTURE"),
         ]
         monkeypatch.setattr(
-            enabled_taro_plugin, "_build_reading_service", lambda: fake_service
+            enabled_tarot_plugin, "_build_reading_service", lambda: fake_service
         )
 
-        reply = enabled_taro_plugin.handle_action(
+        reply = enabled_tarot_plugin.handle_action(
             _make_inbound(command="reading", identity=None)
         )
 
@@ -151,12 +151,12 @@ class TestDrawCommandAnonymousFree:
         fake_service.draw_free_reading.assert_called_once_with(card_count=3)
 
 
-# ── DoD: ZERO token debit on ANY taro bot command (linked OR unlinked) ───────
+# ── DoD: ZERO token debit on ANY tarot bot command (linked OR unlinked) ───────
 class TestNoTokenBillingEver:
     @pytest.mark.parametrize("command", ["draw", "reading"])
     @pytest.mark.parametrize("identity", [None, _linked_identity()])
     def test_bot_command_never_touches_a_token_service(
-        self, enabled_taro_plugin, monkeypatch, command, identity
+        self, enabled_tarot_plugin, monkeypatch, command, identity
     ):
         """The reading path must never resolve or call any token service.
 
@@ -168,10 +168,10 @@ class TestNoTokenBillingEver:
         fake_service = MagicMock()
         fake_service.draw_free_reading.return_value = [_fake_card()]
         monkeypatch.setattr(
-            enabled_taro_plugin, "_build_reading_service", lambda: fake_service
+            enabled_tarot_plugin, "_build_reading_service", lambda: fake_service
         )
 
-        reply = enabled_taro_plugin.handle_action(
+        reply = enabled_tarot_plugin.handle_action(
             _make_inbound(command=command, identity=identity)
         )
 
@@ -186,17 +186,17 @@ class TestNoTokenBillingEver:
 # ── multi-step reading via BotReply.choices → handle_action (D7) ─────────────
 class TestChoiceRoundTripD7:
     def test_reading_offers_choices_that_route_back_through_handle_action(
-        self, enabled_taro_plugin, monkeypatch
+        self, enabled_tarot_plugin, monkeypatch
     ):
         fake_service = MagicMock()
         fake_service.draw_free_reading.return_value = [_fake_card("Picked", "PRESENT")]
         monkeypatch.setattr(
-            enabled_taro_plugin, "_build_reading_service", lambda: fake_service
+            enabled_tarot_plugin, "_build_reading_service", lambda: fake_service
         )
 
         # A tapped choice arrives as a namespaced action_data, still anonymous.
-        tap = _make_inbound(action_data="taro:draw:past", identity=None)
-        reply = enabled_taro_plugin.handle_action(tap)
+        tap = _make_inbound(action_data="tarot:draw:past", identity=None)
+        reply = enabled_tarot_plugin.handle_action(tap)
 
         assert isinstance(reply, BotReply)
         assert "Picked" in reply.text
@@ -206,15 +206,15 @@ class TestChoiceRoundTripD7:
 
 # ── optional bridge: module imports with bot-base absent ─────────────────────
 class TestBridgeOptional:
-    def test_taro_imports_without_bot_base_on_path(self):
-        """The taro package must import even when bot_base is unavailable.
+    def test_tarot_imports_without_bot_base_on_path(self):
+        """The tarot package must import even when bot_base is unavailable.
 
         Simulate bot-base absent by blocking its import and re-importing the
-        taro package: a top-level ``import bot_base`` would raise here.
+        tarot package: a top-level ``import bot_base`` would raise here.
         """
         import importlib
 
-        blocked_prefixes = ("plugins.bot_base", "plugins.taro")
+        blocked_prefixes = ("plugins.bot_base", "plugins.tarot")
         saved = {
             name: module
             for name, module in sys.modules.items()
@@ -234,9 +234,9 @@ class TestBridgeOptional:
         finder = _BlockBotBase()
         sys.meta_path.insert(0, finder)
         try:
-            taro_module = importlib.import_module("plugins.taro")
-            plugin = taro_module.TaroPlugin()
-            assert plugin.metadata.name == "taro"
+            tarot_module = importlib.import_module("plugins.tarot")
+            plugin = tarot_module.TarotPlugin()
+            assert plugin.metadata.name == "tarot"
             assert "bot-base" not in (plugin.metadata.dependencies or [])
         finally:
             sys.meta_path.remove(finder)
@@ -245,6 +245,6 @@ class TestBridgeOptional:
                     del sys.modules[name]
             sys.modules.update(saved)
 
-    def test_bot_base_not_a_hard_dependency(self, enabled_taro_plugin):
-        assert "bot-base" not in (enabled_taro_plugin.metadata.dependencies or [])
-        assert "bot_base" not in (enabled_taro_plugin.metadata.dependencies or [])
+    def test_bot_base_not_a_hard_dependency(self, enabled_tarot_plugin):
+        assert "bot-base" not in (enabled_tarot_plugin.metadata.dependencies or [])
+        assert "bot_base" not in (enabled_tarot_plugin.metadata.dependencies or [])

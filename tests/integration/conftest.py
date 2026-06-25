@@ -1,8 +1,8 @@
-"""Integration harness for the taro bot-consumer round-trip (S45.3).
+"""Integration harness for the tarot bot-consumer round-trip (S45.3).
 
-Boots the full app so the live plugin set (taro + bot-base + bot-telegram) is
+Boots the full app so the live plugin set (tarot + bot-base + bot-telegram) is
 registered: the webhook route is mounted, bot-base's dispatcher routes ``/draw``
-to taro, and the taro plugin is collected as a ``BotCommandProvider``. Outbound
+to tarot, and the tarot plugin is collected as a ``BotCommandProvider``. Outbound
 transport uses bot-telegram's in-memory fake client (no network). Mirrors the
 chat bot round-trip conftest.
 """
@@ -63,7 +63,7 @@ def app():
         # the F401 noqa is the established harness pattern, see bot_base/chat.
         import plugins.bot_base.bot_base.models  # noqa: F401
         import plugins.bot_telegram.bot_telegram.models  # noqa: F401
-        import plugins.taro.src.models  # noqa: F401
+        import plugins.tarot.src.models  # noqa: F401
 
         # Build the schema once per process (create_all, checkfirst — never
         # drops, so it cannot wipe data) and commit baseline reference rows

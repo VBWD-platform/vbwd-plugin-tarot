@@ -1,15 +1,15 @@
-"""TaroCardDraw domain model - card within a session."""
+"""TarotCardDraw domain model - card within a session."""
 from sqlalchemy.dialects.postgresql import UUID
 from vbwd.extensions import db
 from vbwd.models.base import BaseModel
-from plugins.taro.src.enums import CardPosition, CardOrientation
+from plugins.tarot.src.enums import CardPosition, CardOrientation
 
 
-class TaroCardDraw(BaseModel):
+class TarotCardDraw(BaseModel):
     """
-    TaroCardDraw model represents a single card within a Tarot session.
+    TarotCardDraw model represents a single card within a Tarot session.
 
-    Every TaroSession has 3 TaroCardDraw records:
+    Every TarotSession has 3 TarotCardDraw records:
     - One card for PAST position
     - One card for PRESENT position
     - One card for FUTURE position
@@ -21,13 +21,13 @@ class TaroCardDraw(BaseModel):
     - AI-generated interpretation (unique per draw)
     """
 
-    __tablename__ = "taro_card_draw"
+    __tablename__ = "tarot_card_draw"
 
     # References
-    session_id = db.Column(db.UUID, nullable=False, index=True)  # FK to taro_session
+    session_id = db.Column(db.UUID, nullable=False, index=True)  # FK to tarot_session
     arcana_id = db.Column(
         UUID(as_uuid=True),
-        db.ForeignKey("taro_arcana.id"),
+        db.ForeignKey("tarot_arcana.id"),
         nullable=False,
         index=True,
     )
@@ -57,7 +57,7 @@ class TaroCardDraw(BaseModel):
     )
 
     def to_dict(self) -> dict:
-        """Convert TaroCardDraw to dictionary for API response."""
+        """Convert TarotCardDraw to dictionary for API response."""
         return {
             "id": str(self.id),
             "card_id": str(self.id),  # Frontend expects card_id
@@ -76,4 +76,4 @@ class TaroCardDraw(BaseModel):
         }
 
     def __repr__(self) -> str:
-        return f"<TaroCardDraw(session_id='{self.session_id}', position='{self.position}', orientation='{self.orientation}')>"  # noqa: E501
+        return f"<TarotCardDraw(session_id='{self.session_id}', position='{self.position}', orientation='{self.orientation}')>"  # noqa: E501

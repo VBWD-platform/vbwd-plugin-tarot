@@ -4,7 +4,7 @@ These tests use actual LLM API to validate language parameter flow end-to-end.
 Requires valid API credentials in vbwd-backend/plugins/config.json.
 
 To run:
-    pytest plugins/taro/tests/integration/test_real_llm_language.py -v -s
+    pytest plugins/tarot/tests/integration/test_real_llm_language.py -v -s
 
 Environment variables:
     SKIP_LLM_TESTS=1  - Skip real LLM tests (useful for CI without API keys)
@@ -14,29 +14,31 @@ import json
 import os
 from uuid import uuid4
 
-from plugins.taro.src.services.taro_session_service import TaroSessionService
-from plugins.taro.src.services.prompt_service import PromptService
-from plugins.taro.src.repositories.arcana_repository import ArcanaRepository
-from plugins.taro.src.repositories.taro_session_repository import TaroSessionRepository
-from plugins.taro.src.repositories.taro_card_draw_repository import (
-    TaroCardDrawRepository,
+from plugins.tarot.src.services.tarot_session_service import TarotSessionService
+from plugins.tarot.src.services.prompt_service import PromptService
+from plugins.tarot.src.repositories.arcana_repository import ArcanaRepository
+from plugins.tarot.src.repositories.tarot_session_repository import (
+    TarotSessionRepository,
 )
-from plugins.taro.src.models.arcana import Arcana
-from plugins.taro.src.enums import ArcanaType
-from plugins.taro.src.services.taro_session_service import (
+from plugins.tarot.src.repositories.tarot_card_draw_repository import (
+    TarotCardDrawRepository,
+)
+from plugins.tarot.src.models.arcana import Arcana
+from plugins.tarot.src.enums import ArcanaType
+from plugins.tarot.src.services.tarot_session_service import (
     CoreClientChatAdapter,
     LLMError,
 )
 
 
-def load_taro_config():
-    """Load Taro configuration from the aggregate ``plugins/config.json``.
+def load_tarot_config():
+    """Load Tarot configuration from the aggregate ``plugins/config.json``.
 
-    Drives the real-LLM fixtures (``taro_config`` / ``llm_adapter``): when the
+    Drives the real-LLM fixtures (``tarot_config`` / ``llm_adapter``): when the
     aggregate has no credentials (the CI / local default) those fixtures skip,
     so this loader must read the aggregate — NOT the plugin's own config.json
     (which ships real credentials and templates). The two config-CONTENT tests
-    instead use ``load_taro_plugin_config()`` below to assert the shipped
+    instead use ``load_tarot_plugin_config()`` below to assert the shipped
     template keys.
     """
     config_path = os.path.join(
@@ -52,18 +54,18 @@ def load_taro_config():
     with open(config_path, "r") as f:
         config = json.load(f)
 
-    return config.get("taro", {})
+    return config.get("tarot", {})
 
 
-def load_taro_plugin_config():
-    """Load taro's OWN ``plugins/taro/config.json`` — the single source of truth
+def load_tarot_plugin_config():
+    """Load tarot's OWN ``plugins/tarot/config.json`` — the single source of truth
     that ships the prompt templates (``system_prompt``,
     ``situation_reading_template``, …).
 
     The aggregate ``plugins/config.json`` only holds persisted overrides, which
     a fresh install seeds from ``DEFAULT_CONFIG`` (base keys, no templates), so
     the config-content tests must assert against this file. It is a flat dict
-    (no ``taro`` wrapper), unlike the aggregate.
+    (no ``tarot`` wrapper), unlike the aggregate.
     """
     config_path = os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
@@ -78,26 +80,26 @@ def load_taro_plugin_config():
 
 
 @pytest.fixture
-def taro_config():
-    """Fixture providing loaded Taro configuration"""
+def tarot_config():
+    """Fixture providing loaded Tarot configuration"""
     try:
-        return load_taro_config()
+        return load_tarot_config()
     except FileNotFoundError:
         pytest.skip("plugins/config.json not found — skipping config-dependent test")
 
 
 @pytest.fixture
-def llm_adapter(app, taro_config):
+def llm_adapter(app, tarot_config):
     """Real LLM adapter over the CORE client (S97.5).
 
     The model/endpoint/key now live in a central LLM connection; this fixture
-    resolves the core client for taro's ``llm_connection_slug`` (else the active
+    resolves the core client for tarot's ``llm_connection_slug`` (else the active
     default) and skips when no active connection exists (the CI / local default).
     """
     if os.getenv("SKIP_LLM_TESTS") == "1":
         pytest.skip("SKIP_LLM_TESTS=1")
 
-    slug = taro_config.get("llm_connection_slug") or None
+    slug = tarot_config.get("llm_connection_slug") or None
     try:
         with app.app_context():
             llm_client = app.container.llm_client(slug=slug)
@@ -111,7 +113,7 @@ def llm_adapter(app, taro_config):
 
 
 @pytest.fixture
-def prompt_service(taro_config):
+def prompt_service(tarot_config):
     """Fixture providing PromptService with config templates"""
     prompts_data = {
         "situation_reading": {
@@ -178,13 +180,13 @@ class TestRealLLMLanguageCommunication:
         """Test real LLM communication with Russian language instruction"""
         # Setup: Real repositories
         arcana_repo = ArcanaRepository(db.session)
-        session_repo = TaroSessionRepository(db.session)
-        card_draw_repo = TaroCardDrawRepository(db.session)
+        session_repo = TarotSessionRepository(db.session)
+        card_draw_repo = TarotCardDrawRepository(db.session)
 
         self._create_sample_arcanas(db)
 
         # Setup: Service with real LLM adapter
-        service = TaroSessionService(
+        service = TarotSessionService(
             arcana_repo=arcana_repo,
             session_repo=session_repo,
             card_draw_repo=card_draw_repo,
@@ -220,12 +222,12 @@ class TestRealLLMLanguageCommunication:
     def test_real_llm_with_german_language(self, db, llm_adapter, prompt_service):
         """Test real LLM communication with German language instruction"""
         arcana_repo = ArcanaRepository(db.session)
-        session_repo = TaroSessionRepository(db.session)
-        card_draw_repo = TaroCardDrawRepository(db.session)
+        session_repo = TarotSessionRepository(db.session)
+        card_draw_repo = TarotCardDrawRepository(db.session)
 
         self._create_sample_arcanas(db)
 
-        service = TaroSessionService(
+        service = TarotSessionService(
             arcana_repo=arcana_repo,
             session_repo=session_repo,
             card_draw_repo=card_draw_repo,
@@ -254,12 +256,12 @@ class TestRealLLMLanguageCommunication:
     def test_real_llm_with_french_language(self, db, llm_adapter, prompt_service):
         """Test real LLM communication with French language instruction"""
         arcana_repo = ArcanaRepository(db.session)
-        session_repo = TaroSessionRepository(db.session)
-        card_draw_repo = TaroCardDrawRepository(db.session)
+        session_repo = TarotSessionRepository(db.session)
+        card_draw_repo = TarotCardDrawRepository(db.session)
 
         self._create_sample_arcanas(db)
 
-        service = TaroSessionService(
+        service = TarotSessionService(
             arcana_repo=arcana_repo,
             session_repo=session_repo,
             card_draw_repo=card_draw_repo,
@@ -290,12 +292,12 @@ class TestRealLLMLanguageCommunication:
     ):
         """Test real LLM communication for follow-up questions with language"""
         arcana_repo = ArcanaRepository(db.session)
-        session_repo = TaroSessionRepository(db.session)
-        card_draw_repo = TaroCardDrawRepository(db.session)
+        session_repo = TarotSessionRepository(db.session)
+        card_draw_repo = TarotCardDrawRepository(db.session)
 
         self._create_sample_arcanas(db)
 
-        service = TaroSessionService(
+        service = TarotSessionService(
             arcana_repo=arcana_repo,
             session_repo=session_repo,
             card_draw_repo=card_draw_repo,
@@ -327,12 +329,12 @@ class TestRealLLMLanguageCommunication:
     ):
         """Test that LLM actually receives and respects language instruction"""
         arcana_repo = ArcanaRepository(db.session)
-        session_repo = TaroSessionRepository(db.session)
-        card_draw_repo = TaroCardDrawRepository(db.session)
+        session_repo = TarotSessionRepository(db.session)
+        card_draw_repo = TarotCardDrawRepository(db.session)
 
         self._create_sample_arcanas(db)
 
-        service = TaroSessionService(
+        service = TarotSessionService(
             arcana_repo=arcana_repo,
             session_repo=session_repo,
             card_draw_repo=card_draw_repo,
@@ -374,24 +376,24 @@ class TestRealLLMLanguageCommunication:
             pytest.fail(f"LLM API call failed: {e}")
 
     def test_real_llm_error_handling(self, db, prompt_service):
-        """A core LLM failure surfaces as taro's ``LLMError`` to the caller."""
+        """A core LLM failure surfaces as tarot's ``LLMError`` to the caller."""
         from unittest.mock import MagicMock
 
         from vbwd.llm.errors import LlmError
 
-        # A core client whose call fails — wrapped by taro's chat adapter, which
-        # must re-raise the failure as taro's own LLMError.
+        # A core client whose call fails — wrapped by tarot's chat adapter, which
+        # must re-raise the failure as tarot's own LLMError.
         failing_client = MagicMock()
         failing_client.chat.side_effect = LlmError("invalid credentials")
         bad_llm = CoreClientChatAdapter(failing_client, system_prompt="x")
 
         arcana_repo = ArcanaRepository(db.session)
-        session_repo = TaroSessionRepository(db.session)
-        card_draw_repo = TaroCardDrawRepository(db.session)
+        session_repo = TarotSessionRepository(db.session)
+        card_draw_repo = TarotCardDrawRepository(db.session)
 
         self._create_sample_arcanas(db)
 
-        service = TaroSessionService(
+        service = TarotSessionService(
             arcana_repo=arcana_repo,
             session_repo=session_repo,
             card_draw_repo=card_draw_repo,
@@ -412,37 +414,41 @@ class TestRealLLMLanguageCommunication:
 class TestLLMConfigurationLoading:
     """Tests for loading and validating LLM configuration"""
 
-    def test_load_taro_config_from_file(self):
-        """Taro's own config.json ships the LLM + prompt keys."""
+    def test_load_tarot_config_from_file(self):
+        """Tarot's own config.json ships the LLM + prompt keys."""
         try:
-            config = load_taro_plugin_config()
+            config = load_tarot_plugin_config()
         except FileNotFoundError:
-            pytest.skip("plugins/taro/config.json not found — taro not installed here")
+            pytest.skip(
+                "plugins/tarot/config.json not found — tarot not installed here"
+            )
 
         if not config:
-            pytest.skip("plugins/taro/config.json is empty in this environment")
+            pytest.skip("plugins/tarot/config.json is empty in this environment")
 
         # Validate required fields exist (the model/endpoint/key now live in the
-        # central LLM connection; taro keeps only the connection slug).
+        # central LLM connection; tarot keeps only the connection slug).
         assert "llm_connection_slug" in config
         assert "system_prompt" in config
 
-    def test_taro_config_has_language_templates(self):
-        """Taro's own config.json ships the prompt templates."""
+    def test_tarot_config_has_language_templates(self):
+        """Tarot's own config.json ships the prompt templates."""
         try:
-            config = load_taro_plugin_config()
+            config = load_tarot_plugin_config()
         except FileNotFoundError:
-            pytest.skip("plugins/taro/config.json not found — taro not installed here")
+            pytest.skip(
+                "plugins/tarot/config.json not found — tarot not installed here"
+            )
 
         if not config:
-            pytest.skip("plugins/taro/config.json is empty in this environment")
+            pytest.skip("plugins/tarot/config.json is empty in this environment")
 
         assert "situation_reading_template" in config
         assert "card_explanation_template" in config
         assert "follow_up_question_template" in config
 
     def test_create_chat_adapter_over_core_client(self):
-        """taro's chat adapter wraps a core client and chats through it."""
+        """tarot's chat adapter wraps a core client and chats through it."""
         from unittest.mock import MagicMock
 
         core_client = MagicMock()
@@ -458,11 +464,11 @@ class TestLLMConfigurationLoading:
         _args, call_kwargs = core_client.chat.call_args
         assert call_kwargs["system_prompt"] == "You are a Tarot reader."
 
-    def test_prompt_service_loads_from_config_templates(self, taro_config):
+    def test_prompt_service_loads_from_config_templates(self, tarot_config):
         """Test that PromptService can be created from config templates"""
         prompts_data = {
             "situation_reading": {
-                "template": taro_config.get("situation_reading_template", ""),
+                "template": tarot_config.get("situation_reading_template", ""),
                 "variables": ["language", "situation_text", "cards_context"],
             }
         }

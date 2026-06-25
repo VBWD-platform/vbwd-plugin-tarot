@@ -1,11 +1,11 @@
-"""Repository for TaroCardDraw data access."""
+"""Repository for TarotCardDraw data access."""
 from typing import Optional, List
-from plugins.taro.src.models.taro_card_draw import TaroCardDraw
-from plugins.taro.src.enums import CardPosition, CardOrientation
+from plugins.tarot.src.models.tarot_card_draw import TarotCardDraw
+from plugins.tarot.src.enums import CardPosition, CardOrientation
 
 
-class TaroCardDrawRepository:
-    """Repository for TaroCardDraw model database operations."""
+class TarotCardDrawRepository:
+    """Repository for TarotCardDraw model database operations."""
 
     def __init__(self, session):
         """Initialize repository with database session.
@@ -15,20 +15,22 @@ class TaroCardDrawRepository:
         """
         self.session = session
 
-    def create(self, **kwargs) -> TaroCardDraw:
-        """Create new TaroCardDraw."""
-        card = TaroCardDraw(**kwargs)
+    def create(self, **kwargs) -> TarotCardDraw:
+        """Create new TarotCardDraw."""
+        card = TarotCardDraw(**kwargs)
         self.session.add(card)
         self.session.commit()
         return card
 
-    def get_by_id(self, card_id: str) -> Optional[TaroCardDraw]:
-        """Get TaroCardDraw by ID."""
+    def get_by_id(self, card_id: str) -> Optional[TarotCardDraw]:
+        """Get TarotCardDraw by ID."""
         return (
-            self.session.query(TaroCardDraw).filter(TaroCardDraw.id == card_id).first()
+            self.session.query(TarotCardDraw)
+            .filter(TarotCardDraw.id == card_id)
+            .first()
         )
 
-    def get_session_cards(self, session_id: str) -> List[TaroCardDraw]:
+    def get_session_cards(self, session_id: str) -> List[TarotCardDraw]:
         """Get all cards in a session, ordered by position (PAST, PRESENT, FUTURE)."""
         position_order = {
             CardPosition.PAST.value: 1,
@@ -37,8 +39,8 @@ class TaroCardDrawRepository:
         }
 
         cards = (
-            self.session.query(TaroCardDraw)
-            .filter(TaroCardDraw.session_id == session_id)
+            self.session.query(TarotCardDraw)
+            .filter(TarotCardDraw.session_id == session_id)
             .all()
         )
 
@@ -49,40 +51,40 @@ class TaroCardDrawRepository:
         self,
         session_id: str,
         position: CardPosition,
-    ) -> Optional[TaroCardDraw]:
+    ) -> Optional[TarotCardDraw]:
         """Get specific card from session by position."""
         return (
-            self.session.query(TaroCardDraw)
+            self.session.query(TarotCardDraw)
             .filter(
-                TaroCardDraw.session_id == session_id,
-                TaroCardDraw.position == position.value,
+                TarotCardDraw.session_id == session_id,
+                TarotCardDraw.position == position.value,
             )
             .first()
         )
 
-    def get_by_arcana(self, arcana_id: str) -> List[TaroCardDraw]:
+    def get_by_arcana(self, arcana_id: str) -> List[TarotCardDraw]:
         """Get all card draws for specific Arcana."""
         return (
-            self.session.query(TaroCardDraw)
-            .filter(TaroCardDraw.arcana_id == arcana_id)
-            .order_by(TaroCardDraw.created_at.desc())
+            self.session.query(TarotCardDraw)
+            .filter(TarotCardDraw.arcana_id == arcana_id)
+            .order_by(TarotCardDraw.created_at.desc())
             .all()
         )
 
-    def get_by_orientation(self, orientation: CardOrientation) -> List[TaroCardDraw]:
+    def get_by_orientation(self, orientation: CardOrientation) -> List[TarotCardDraw]:
         """Get all cards with specific orientation."""
         return (
-            self.session.query(TaroCardDraw)
-            .filter(TaroCardDraw.orientation == orientation.value)
-            .order_by(TaroCardDraw.created_at.desc())
+            self.session.query(TarotCardDraw)
+            .filter(TarotCardDraw.orientation == orientation.value)
+            .order_by(TarotCardDraw.created_at.desc())
             .all()
         )
 
     def count_session_cards(self, session_id: str) -> int:
         """Count cards in session. Typically 3 (PAST, PRESENT, FUTURE)."""
         return (
-            self.session.query(TaroCardDraw)
-            .filter(TaroCardDraw.session_id == session_id)
+            self.session.query(TarotCardDraw)
+            .filter(TarotCardDraw.session_id == session_id)
             .count()
         )
 
@@ -97,7 +99,7 @@ class TaroCardDrawRepository:
         return True
 
     def delete(self, card_id: str) -> bool:
-        """Delete TaroCardDraw. Returns True if deleted."""
+        """Delete TarotCardDraw. Returns True if deleted."""
         card = self.get_by_id(card_id)
         if card:
             self.session.delete(card)
@@ -108,8 +110,8 @@ class TaroCardDrawRepository:
     def delete_session_cards(self, session_id: str) -> int:
         """Delete all cards in session. Returns count deleted."""
         count = (
-            self.session.query(TaroCardDraw)
-            .filter(TaroCardDraw.session_id == session_id)
+            self.session.query(TarotCardDraw)
+            .filter(TarotCardDraw.session_id == session_id)
             .delete()
         )
         self.session.commit()

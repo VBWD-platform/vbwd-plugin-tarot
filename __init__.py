@@ -60,7 +60,7 @@ class TarotPlugin(BasePlugin):
     def metadata(self) -> PluginMetadata:
         return PluginMetadata(
             name="tarot",
-            version="1.0.0",
+            version="26.6.1",
             author="VBWD Team",
             description="Tarot card reading with LLM-powered interpretations",
             dependencies=["subscription"],

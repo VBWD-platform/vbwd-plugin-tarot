@@ -1,6 +1,6 @@
 """Tarot card reading plugin with LLM-powered interpretations."""
 from typing import Optional, Dict, Any, List, TYPE_CHECKING
-from vbwd.plugins.base import BasePlugin, PluginMetadata
+from vbwd.plugins.base import BasePlugin, PluginMetadata, PublicRouteDeclaration
 
 if TYPE_CHECKING:
     from flask import Blueprint
@@ -72,6 +72,14 @@ class TarotPlugin(BasePlugin):
         if config:
             merged.update(config)
         super().initialize(merged)
+
+    def declare_public_routes(self) -> PublicRouteDeclaration:
+        """Public static tarot-card image assets."""
+        return PublicRouteDeclaration(
+            read={
+                "/api/v1/tarot/assets/arcana/<path:filename>": "Public static tarot-card image assets.",
+            },
+        )
 
     def get_blueprint(self) -> Optional["Blueprint"]:
         from plugins.tarot.src.routes import tarot_bp

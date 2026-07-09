@@ -53,6 +53,21 @@ echo ""
 # The script is located at /app/plugins/tarot/src/bin/populate_arcanas.py inside the container
 docker compose exec -T api python /app/plugins/tarot/src/bin/populate_arcanas.py
 
+echo ""
+echo -e "${YELLOW}[+] Seeding tarot access levels + reading plan...${NC}"
+echo ""
+
+# Seed the user permission, access levels, and the "Tarot AI-Reading Sessions"
+# plan. Runs inside the api container within an app context so it uses the same
+# db.session the plugin uses at runtime.
+docker compose exec -T api python -c "
+from vbwd.app import create_app
+app = create_app()
+with app.app_context():
+    from plugins.tarot.populate_db import populate_db
+    populate_db()
+"
+
 if [ $? -eq 0 ]; then
     echo ""
     echo -e "${GREEN}╔════════════════════════════════════════╗${NC}"

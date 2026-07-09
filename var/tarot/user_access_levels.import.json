@@ -1,0 +1,14 @@
+{
+  "vbwd_export": "user_access_levels",
+  "version": 1,
+  "user_access_levels": [
+    {
+      "name": "Tarot Reading",
+      "slug": "tarot.user.reading",
+      "description": "Grants access to AI-powered tarot readings.",
+      "is_system": true,
+      "linked_plan_slug": null,
+      "permissions": ["tarot.reading.view"]
+    }
+  ]
+}

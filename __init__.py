@@ -97,6 +97,16 @@ class TarotPlugin(BasePlugin):
             {"key": "tarot.configure", "label": "Tarot settings", "group": "Tarot"},
         ]
 
+    @property
+    def user_permissions(self):
+        return [
+            {
+                "key": "tarot.reading.view",
+                "label": "Use AI tarot readings",
+                "group": "Tarot",
+            },
+        ]
+
     def on_enable(self) -> None:
         pass
 

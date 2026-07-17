@@ -153,7 +153,9 @@ def check_token_balance(user_id: str, tokens_required: int = 10) -> bool:
     transaction_repo = TokenTransactionRepository(db.session)
     purchase_repo = TokenBundlePurchaseRepository(db.session)
 
-    token_service = TokenService(balance_repo, transaction_repo, purchase_repo)
+    token_service = TokenService(
+        balance_repo, transaction_repo, purchase_repo, db.session
+    )
     uid = user_id if isinstance(user_id, UUID) else UUID(user_id)
     user_balance = token_service.get_balance(uid)
     return user_balance >= tokens_required

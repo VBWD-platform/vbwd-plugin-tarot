@@ -44,6 +44,11 @@ class CoreClientChatAdapter:
         self._system_prompt = system_prompt
 
     def chat(self, messages: list) -> str:
+        # Defensive guard: an all-empty user prompt is a config misconfig (e.g. a
+        # stale runtime config with no template). Fail fast with tarot's own
+        # error instead of forwarding an empty message the upstream LLM rejects.
+        if not any((message.get("content") or "").strip() for message in messages):
+            raise LLMError("Refusing to call the LLM with an empty prompt")
         try:
             return self._llm_client.chat(messages, system_prompt=self._system_prompt)
         except LlmError as core_error:
@@ -141,8 +146,47 @@ class TarotSessionService:
             return None
 
     @staticmethod
-    def _read_plugin_config() -> dict:
-        """Read the tarot section of the runtime plugin config (best effort)."""
+    def _extract_descriptor_defaults(descriptor_data: dict) -> dict:
+        """Flatten a descriptor-shaped config into ``{key: default_value}``.
+
+        The plugin's own ``config.json`` describes each setting as a
+        ``{"type", "default", "description"}`` dict; extract its ``default``.
+        A value that is not in that shape is passed through unchanged so the
+        loader is tolerant of hand-flattened or partial descriptors.
+        """
+        defaults: dict = {}
+        for setting_key, setting_value in descriptor_data.items():
+            if isinstance(setting_value, dict) and "default" in setting_value:
+                defaults[setting_key] = setting_value["default"]
+            else:
+                defaults[setting_key] = setting_value
+        return defaults
+
+    @staticmethod
+    def _descriptor_defaults() -> dict:
+        """Descriptor defaults from the plugin's own ``config.json`` (best effort).
+
+        Path: ``plugins/tarot/src/services`` -> up 3 -> ``plugins/tarot``.
+        Missing/unreadable descriptor falls back to ``{}`` and never raises.
+        """
+        tarot_plugin_dir = os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        )
+        descriptor_path = os.path.join(tarot_plugin_dir, "config.json")
+        if not os.path.exists(descriptor_path):
+            return {}
+        with open(descriptor_path, "r") as descriptor_file:
+            descriptor_data = json.load(descriptor_file)
+        return TarotSessionService._extract_descriptor_defaults(descriptor_data)
+
+    @staticmethod
+    def _saved_runtime_config() -> dict:
+        """Operator-saved tarot values from the runtime store (best effort).
+
+        Path: ``plugins/tarot/src/services`` -> up 4 -> ``plugins`` ->
+        ``config.json`` -> ``tarot``. Missing/unreadable store falls back to
+        ``{}`` and never raises.
+        """
         plugins_dir = os.path.dirname(
             os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         )
@@ -152,6 +196,21 @@ class TarotSessionService:
         with open(config_path, "r") as config_file:
             config_data = json.load(config_file)
         return config_data.get("tarot", {})
+
+    @staticmethod
+    def _read_plugin_config() -> dict:
+        """Effective tarot config: descriptor defaults merged UNDER saved values.
+
+        Descriptor defaults form the base; operator-saved values override any
+        key they define. A key absent from the (possibly stale) saved config
+        falls back to its descriptor default — so template keys and
+        ``llm_connection_slug`` never resolve to an empty string just because
+        the runtime store predates the current schema.
+        """
+        return {
+            **TarotSessionService._descriptor_defaults(),
+            **TarotSessionService._saved_runtime_config(),
+        }
 
     @staticmethod
     def _initialize_prompt_service() -> Optional[PromptService]:
@@ -169,22 +228,9 @@ class TarotSessionService:
             PromptService instance or None if configuration not found
         """
         try:
-            # Read plugin configuration from config.json (runtime config at plugins/config.json)
-            plugins_dir = os.path.dirname(
-                os.path.dirname(
-                    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                )
-            )
-            config_path = os.path.join(plugins_dir, "config.json")
-
-            if not os.path.exists(config_path):
-                logger.warning(f"Plugin config file not found at {config_path}")
-                return None
-
-            with open(config_path, "r") as f:
-                config_data = json.load(f)
-
-            tarot_config = config_data.get("tarot", {})
+            # Effective config = descriptor defaults merged UNDER operator-saved
+            # values (single source of truth, shared with the LLM adapter).
+            tarot_config = TarotSessionService._read_plugin_config()
 
             # Reconstruct prompts from flat config structure
             # Note: Temperature and max_tokens use global LLM settings (llm_temperature, llm_max_tokens)
